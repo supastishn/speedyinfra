@@ -1,29 +1,86 @@
 const express = require('express');
 const router = express.Router();
+const Datastore = require('nedb');
+const path = require('path');
+const fs = require('fs');
 
-// Mock database storage (in-memory)
-let mockDB = {};
+// Database store cache
+const dbs = {};
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir);
+}
+
+// Helper to get/create a NeDB instance for a table
+function getTableDB(tableName) {
+  if (!dbs[tableName]) {
+    dbs[tableName] = new Datastore({
+      filename: path.join(dataDir, `${tableName}.db`),
+      autoload: true
+    });
+  }
+  return dbs[tableName];
+}
+
+// Promisify NeDB methods for async/await
+function promisifyDBMethod(db, method) {
+  return (...args) => new Promise((resolve, reject) => {
+    db[method](...args, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+}
 
 // Select endpoint
 router.get('/:table', async (req, res) => {
-  res.status(200).json({ data: [] });
+  try {
+    const db = getTableDB(req.params.table);
+    const find = promisifyDBMethod(db, 'find');
+    const docs = await find({});
+    res.status(200).json(docs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Insert endpoint
 router.post('/:table', async (req, res) => {
-  const id = Date.now().toString();
-  mockDB[id] = req.body;
-  res.status(201).json({ id, ...req.body });
+  try {
+    const db = getTableDB(req.params.table);
+    const insert = promisifyDBMethod(db, 'insert');
+    const newDoc = { ...req.body, createdAt: new Date() };
+    const doc = await insert(newDoc);
+    res.status(201).json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Update endpoint
 router.patch('/:table', async (req, res) => {
-  res.status(200).json({ data: [] });
+  try {
+    const db = getTableDB(req.params.table);
+    const update = promisifyDBMethod(db, 'update');
+    const affected = await update(req.query, { $set: req.body }, { multi: true });
+    res.status(200).json({ modified: affected });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Delete endpoint
 router.delete('/:table', async (req, res) => {
-  res.status(200).json({ data: [] });
+  try {
+    const db = getTableDB(req.params.table);
+    const remove = promisifyDBMethod(db, 'remove');
+    const result = await remove(req.query, { multi: true });
+    res.status(200).json({ deleted: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
