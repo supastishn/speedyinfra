@@ -10,10 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@seald-io/nedb": "^5.0.5",
     "bcryptjs": "^3.0.2",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "nedb": "^1.8.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
