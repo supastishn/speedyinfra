@@ -3,20 +3,30 @@ const path = require('path');
 const fs = require('fs');
 
 const dbs = {};
-const dataDir = path.join(__dirname, '../data');
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
+function getTableDB(tableName, projectName = "") {
+  if (!projectName) {
+    throw new Error('Project name is required');
+  }
 
-function getTableDB(tableName) {
-  if (!dbs[tableName]) {
-    dbs[tableName] = new Datastore({
-      filename: path.join(dataDir, `${tableName}.db`),
+  const basePath = path.join(__dirname, `../../projects/${projectName}`);
+  
+  if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath, { recursive: true });
+  }
+
+  if (!dbs[projectName]) {
+    dbs[projectName] = {};
+  }
+  
+  if (!dbs[projectName][tableName]) {
+    dbs[projectName][tableName] = new Datastore({
+      filename: path.join(basePath, `${tableName}.db`),
       autoload: true
     });
   }
-  return dbs[tableName];
+  
+  return dbs[projectName][tableName];
 }
 
 function promisifyDBMethod(db, method) {

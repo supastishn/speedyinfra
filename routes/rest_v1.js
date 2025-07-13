@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 
+router.use((req, res, next) => {
+  const projectName = req.headers['x-project-name'];
+  
+  if (!projectName) {
+    return res.status(400).json({ error: 'Missing X-Project-Name header' });
+  }
+  
+  req.projectName = projectName;
+  next();
+});
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
