@@ -1,38 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Datastore = require('nedb');
-const path = require('path');
-const fs = require('fs');
-
-// Database store cache
-const dbs = {};
-
-// Ensure data directory exists
-const dataDir = path.join(__dirname, '../data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
-
-// Helper to get/create a NeDB instance for a table
-function getTableDB(tableName) {
-  if (!dbs[tableName]) {
-    dbs[tableName] = new Datastore({
-      filename: path.join(dataDir, `${tableName}.db`),
-      autoload: true
-    });
-  }
-  return dbs[tableName];
-}
-
-// Promisify NeDB methods for async/await
-function promisifyDBMethod(db, method) {
-  return (...args) => new Promise((resolve, reject) => {
-    db[method](...args, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
-}
+const { getTableDB, promisifyDBMethod } = require('../util/db');
 
 // Select endpoint
 router.get('/:table', async (req, res) => {

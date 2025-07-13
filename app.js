@@ -5,10 +5,10 @@ const port = 3000
 // Include routers
 const rest_v1_router = require('./routes/rest_v1');
 
-// CORS support
+ // CORS support
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'apikey, Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   next();
 });
 
