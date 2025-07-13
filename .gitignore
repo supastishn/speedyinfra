@@ -1,3 +1,8 @@
 .aider*
 node_modules
 .env
+projects/
+*.log
+__pycache__/
+.coverage*
+.pytest_cache*
