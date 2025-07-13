@@ -10,11 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "express": "^5.1.0",
-    "body-parser": "^1.20.2"
+    "express": "^5.1.0"
   },
   "devDependencies": {
-    "jest": "^29.0.0",
-    "supertest": "^6.3.3"
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }
