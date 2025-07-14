@@ -1,7 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
 const { getTableDB } = require('../util/db');
-const http = require('http');
 
 jest.setTimeout(15000);
 
@@ -10,12 +9,8 @@ const TEST_PROJECT = `test_project_tables_${Date.now()}`;
 const TEST_TABLE = 'test_data';
 
 let authToken;
-let server;
 
 beforeAll(async () => {
-  server = http.createServer(app);
-  await new Promise((resolve) => server.listen(0, resolve));
-  
   // Create test user and get token
   const testUser = {
     email: `test${Date.now()}@example.com`,
@@ -27,13 +22,13 @@ beforeAll(async () => {
   await new Promise((resolve) => db.loadDatabase(resolve));
   
   // Register test user
-  await request(server)
+  await request(app)
     .post('/rest/v1/auth/register')
     .set('X-Project-Name', TEST_PROJECT)
     .send(testUser);
   
   // Login to get token
-  const loginRes = await request(server)
+  const loginRes = await request(app)
     .post('/rest/v1/auth/login')
     .set('X-Project-Name', TEST_PROJECT)
     .send(testUser);
@@ -42,9 +37,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Close server
-  await new Promise((resolve) => server.close(resolve));
-  
   // Cleanup project directory
   const fs = require('fs');
   const path = require('path');
@@ -57,7 +49,7 @@ afterAll(async () => {
 
 describe('Table CRUD API', () => {
   test('Create document', async () => {
-    const res = await request(server)
+    const res = await request(app)
       .post(`/rest/v1/tables/${TEST_TABLE}`)
       .set('X-Project-Name', TEST_PROJECT)
       .set('Authorization', `Bearer ${authToken}`)
@@ -68,7 +60,7 @@ describe('Table CRUD API', () => {
   });
 
   test('Read documents', async () => {
-    const res = await request(server)
+    const res = await request(app)
       .get(`/rest/v1/tables/${TEST_TABLE}`)
       .set('X-Project-Name', TEST_PROJECT)
       .set('Authorization', `Bearer ${authToken}`);

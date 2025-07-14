@@ -1,7 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
-const http = require('http');
 
 jest.setTimeout(15000);
 
@@ -14,21 +13,13 @@ const TEST_USER = {
   password: 'password123'
 };
 
-let server;
-
 beforeAll(async () => {
-  server = http.createServer(app);
-  await new Promise((resolve) => server.listen(0, resolve));
-  
   // Add database readiness check
   const usersDB = getTableDB('_users', TEST_PROJECT);
   await new Promise((resolve) => usersDB.loadDatabase(resolve));
 });
 
 afterAll(async () => {
-  // Close server
-  await new Promise((resolve) => server.close(resolve));
-  
   // Cleanup project directory
   const fs = require('fs');
   const path = require('path');
@@ -41,7 +32,7 @@ afterAll(async () => {
 
 describe('Auth API', () => {
   test('Register new user', async () => {
-    const res = await request(server)
+    const res = await request(app)
       .post('/rest/v1/auth/register')
       .set('X-Project-Name', TEST_PROJECT)
       .send(TEST_USER);
@@ -52,7 +43,7 @@ describe('Auth API', () => {
   });
 
   test('Login with valid credentials', async () => {
-    const res = await request(server)
+    const res = await request(app)
       .post('/rest/v1/auth/login')
       .set('X-Project-Name', TEST_PROJECT)
       .send(TEST_USER);
