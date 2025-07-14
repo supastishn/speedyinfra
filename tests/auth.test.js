@@ -1,6 +1,8 @@
 const request = require('supertest');
 const app = require('../app');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
+const http = require('http');
+let server;
 
 // Generate unique project name for each test run
 const TEST_PROJECT = `test_project_auth_${Date.now()}`;
@@ -11,13 +13,17 @@ const TEST_USER = {
   password: 'password123'
 };
 
-beforeAll(async () => {
-  // Setup test project dir by triggering DB initialization
-  const usersDB = getTableDB('_users', TEST_PROJECT);
-  // We don't need to do anything else, just creating the DB is enough
+beforeAll((done) => {
+  server = http.createServer(app);
+  server.listen(0, async () => {
+    // Setup test project dir by triggering DB initialization
+    const usersDB = getTableDB('_users', TEST_PROJECT);
+    // We don't need to do anything else, just creating the DB is enough
+    done();
+  });
 });
 
-afterAll(() => {
+afterAll((done) => {
   // Cleanup: remove test project directory
   const fs = require('fs');
   const path = require('path');
@@ -25,11 +31,12 @@ afterAll(() => {
   if (fs.existsSync(projectPath)) {
     fs.rmdirSync(projectPath, { recursive: true });
   }
+  server.close(done);
 });
 
 describe('Auth API', () => {
   test('Register new user', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/rest/v1/auth/register')
       .set('X-Project-Name', TEST_PROJECT)
       .send(TEST_USER);
@@ -40,7 +47,7 @@ describe('Auth API', () => {
   });
 
   test('Login with valid credentials', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/rest/v1/auth/login')
       .set('X-Project-Name', TEST_PROJECT)
       .send(TEST_USER);
