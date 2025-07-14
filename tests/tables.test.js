@@ -2,50 +2,57 @@ const request = require('supertest');
 const app = require('../app');
 const { getTableDB } = require('../util/db');
 const http = require('http');
-let server;
+
+jest.setTimeout(15000);
 
 // Generate unique project name for each test run
 const TEST_PROJECT = `test_project_tables_${Date.now()}`;
 const TEST_TABLE = 'test_data';
 
 let authToken;
+let server;
 
-beforeAll((done) => {
+beforeAll(async () => {
   server = http.createServer(app);
-  server.listen(0, async () => {
-    // Setup test project dir by triggering DB initialization
-    const db = getTableDB(TEST_TABLE, TEST_PROJECT);
-
-    // Create test user and get token
-    const testUser = {
-      email: `test${Date.now()}@example.com`,
-      password: 'password123'
-    };
+  await new Promise((resolve) => server.listen(0, resolve));
+  
+  // Create test user and get token
+  const testUser = {
+    email: `test${Date.now()}@example.com`,
+    password: 'password123'
+  };
+  
+  // Add database readiness check
+  const db = getTableDB(TEST_TABLE, TEST_PROJECT);
+  await new Promise((resolve) => db.loadDatabase(resolve));
+  
+  // Register test user
+  await request(server)
+    .post('/rest/v1/auth/register')
+    .set('X-Project-Name', TEST_PROJECT)
+    .send(testUser);
+  
+  // Login to get token
+  const loginRes = await request(server)
+    .post('/rest/v1/auth/login')
+    .set('X-Project-Name', TEST_PROJECT)
+    .send(testUser);
     
-    await request(server)
-      .post('/rest/v1/auth/register')
-      .set('X-Project-Name', TEST_PROJECT)
-      .send(testUser);
-    
-    const loginRes = await request(server)
-      .post('/rest/v1/auth/login')
-      .set('X-Project-Name', TEST_PROJECT)
-      .send(testUser);
-    
-    authToken = loginRes.body.token;
-    done();
-  });
+  authToken = loginRes.body.token;
 });
 
-afterAll((done) => {
-  // Cleanup: remove test project directory
+afterAll(async () => {
+  // Close server
+  await new Promise((resolve) => server.close(resolve));
+  
+  // Cleanup project directory
   const fs = require('fs');
   const path = require('path');
   const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
+  
   if (fs.existsSync(projectPath)) {
-    fs.rmdirSync(projectPath, { recursive: true });
+    fs.rmSync(projectPath, { recursive: true, force: true });
   }
-  server.close(done);
 });
 
 describe('Table CRUD API', () => {

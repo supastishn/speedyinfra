@@ -2,7 +2,8 @@ const request = require('supertest');
 const app = require('../app');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 const http = require('http');
-let server;
+
+jest.setTimeout(15000);
 
 // Generate unique project name for each test run
 const TEST_PROJECT = `test_project_auth_${Date.now()}`;
@@ -13,25 +14,29 @@ const TEST_USER = {
   password: 'password123'
 };
 
-beforeAll((done) => {
+let server;
+
+beforeAll(async () => {
   server = http.createServer(app);
-  server.listen(0, async () => {
-    // Setup test project dir by triggering DB initialization
-    const usersDB = getTableDB('_users', TEST_PROJECT);
-    // We don't need to do anything else, just creating the DB is enough
-    done();
-  });
+  await new Promise((resolve) => server.listen(0, resolve));
+  
+  // Add database readiness check
+  const usersDB = getTableDB('_users', TEST_PROJECT);
+  await new Promise((resolve) => usersDB.loadDatabase(resolve));
 });
 
-afterAll((done) => {
-  // Cleanup: remove test project directory
+afterAll(async () => {
+  // Close server
+  await new Promise((resolve) => server.close(resolve));
+  
+  // Cleanup project directory
   const fs = require('fs');
   const path = require('path');
   const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
+  
   if (fs.existsSync(projectPath)) {
-    fs.rmdirSync(projectPath, { recursive: true });
+    fs.rmSync(projectPath, { recursive: true, force: true });
   }
-  server.close(done);
 });
 
 describe('Auth API', () => {
