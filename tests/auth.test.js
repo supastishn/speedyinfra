@@ -1,9 +1,9 @@
 const request = require('supertest');
 const app = require('../app');
-const { getTableDB } = require('../util/db');
+const { getTableDB, promisifyDBMethod } = require('../util/db');
 
-// Use a unique project for auth tests
-const TEST_PROJECT = 'test_project_auth';
+// Generate unique project name for each test run
+const TEST_PROJECT = `test_project_auth_${Date.now()}`;
 
 // Create test user
 const TEST_USER = {
@@ -11,9 +11,20 @@ const TEST_USER = {
   password: 'password123'
 };
 
-beforeAll(() => {
-  // Setup test project dir
-  const userDB = getTableDB('_users', TEST_PROJECT);
+beforeAll(async () => {
+  // Setup test project dir by triggering DB initialization
+  const usersDB = getTableDB('_users', TEST_PROJECT);
+  // We don't need to do anything else, just creating the DB is enough
+});
+
+afterAll(() => {
+  // Cleanup: remove test project directory
+  const fs = require('fs');
+  const path = require('path');
+  const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
+  if (fs.existsSync(projectPath)) {
+    fs.rmdirSync(projectPath, { recursive: true });
+  }
 });
 
 describe('Auth API', () => {

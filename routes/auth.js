@@ -4,16 +4,16 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 
-const usersDB = getTableDB('_users');
-const findOneUser = promisifyDBMethod(usersDB, 'findOne');
-const insertUser = promisifyDBMethod(usersDB, 'insert');
-
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password required' });
     }
+
+    const usersDB = getTableDB('_users', req.projectName);
+    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
+    const insertUser = promisifyDBMethod(usersDB, 'insert');
 
     const existing = await findOneUser({ email });
     if (existing) {
@@ -41,6 +41,9 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password required' });
     }
+
+    const usersDB = getTableDB('_users', req.projectName);
+    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
 
     const user = await findOneUser({ email });
     if (!user) {

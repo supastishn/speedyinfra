@@ -2,14 +2,14 @@ const request = require('supertest');
 const app = require('../app');
 const { getTableDB } = require('../util/db');
 
-// Use a unique project for table tests
-const TEST_PROJECT = 'test_project_tables';
+// Generate unique project name for each test run
+const TEST_PROJECT = `test_project_tables_${Date.now()}`;
 const TEST_TABLE = 'test_data';
 
 let authToken;
 
 beforeAll(async () => {
-  // Setup test project dir
+  // Setup test project dir by triggering DB initialization
   const db = getTableDB(TEST_TABLE, TEST_PROJECT);
 
   // Create test user and get token
@@ -29,6 +29,16 @@ beforeAll(async () => {
     .send(testUser);
   
   authToken = loginRes.body.token;
+});
+
+afterAll(() => {
+  // Cleanup: remove test project directory
+  const fs = require('fs');
+  const path = require('path');
+  const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
+  if (fs.existsSync(projectPath)) {
+    fs.rmdirSync(projectPath, { recursive: true });
+  }
 });
 
 describe('Table CRUD API', () => {
