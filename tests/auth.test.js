@@ -4,17 +4,14 @@ const { getTableDB, promisifyDBMethod } = require('../util/db');
 
 jest.setTimeout(15000);
 
-// Generate unique project name for each test run
 const TEST_PROJECT = `test_project_auth_${Date.now()}`;
 
-// Create test user
 const TEST_USER = {
   email: `test${Date.now()}@example.com`,
   password: 'password123'
 };
 
 beforeAll(async () => {
-  // Add database readiness check
   const usersDB = getTableDB('_users', TEST_PROJECT);
   await new Promise((resolve) => usersDB.loadDatabase(resolve));
 });

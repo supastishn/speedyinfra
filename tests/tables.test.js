@@ -4,30 +4,25 @@ const { getTableDB } = require('../util/db');
 
 jest.setTimeout(15000);
 
-// Generate unique project name for each test run
 const TEST_PROJECT = `test_project_tables_${Date.now()}`;
 const TEST_TABLE = 'test_data';
 
 let authToken;
 
 beforeAll(async () => {
-  // Create test user and get token
   const testUser = {
     email: `test${Date.now()}@example.com`,
     password: 'password123'
   };
   
-  // Add database readiness check
   const db = getTableDB(TEST_TABLE, TEST_PROJECT);
   await new Promise((resolve) => db.loadDatabase(resolve));
   
-  // Register test user
   await request(app)
     .post('/rest/v1/auth/register')
     .set('X-Project-Name', TEST_PROJECT)
     .send(testUser);
   
-  // Login to get token
   const loginRes = await request(app)
     .post('/rest/v1/auth/login')
     .set('X-Project-Name', TEST_PROJECT)

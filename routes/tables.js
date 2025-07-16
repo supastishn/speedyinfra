@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 
-// Select endpoint
 router.get('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -14,7 +13,6 @@ router.get('/:table', async (req, res) => {
   }
 });
 
-// Insert endpoint
 router.post('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -27,7 +25,6 @@ router.post('/:table', async (req, res) => {
   }
 });
 
-// Update endpoint
 router.patch('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -39,7 +36,6 @@ router.patch('/:table', async (req, res) => {
   }
 });
 
-// Delete endpoint
 router.delete('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
