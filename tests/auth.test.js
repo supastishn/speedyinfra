@@ -13,7 +13,6 @@ const TEST_USER = {
 
 beforeAll(async () => {
   const usersDB = getTableDB('_users', TEST_PROJECT);
-  await new Promise((resolve) => usersDB.loadDatabase(resolve));
 });
 
 afterAll(async () => {
