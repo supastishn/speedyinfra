@@ -42,10 +42,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Cleanup project directory
   const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
   if (fs.existsSync(projectPath)) {
-    fs.rmSync(projectPath, { recursive: true, force: true });
+    await require('fs').promises.rm(projectPath, { recursive: true });
   }
 });
 

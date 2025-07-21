@@ -2,8 +2,6 @@ const request = require('supertest');
 const app = require('../app');
 const { getTableDB } = require('../util/db');
 
-jest.setTimeout(15000);
-
 const TEST_PROJECT = `test_project_tables_${Date.now()}`;
 const TEST_TABLE = 'test_data';
 

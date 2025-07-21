@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
-// New component: APIResultDisplay
 function APIResultDisplay({ results, viewType, setViewType }) {
   const renderTable = (data) => {
     if (!Array.isArray(data) || data.length === 0) return <div>No data</div>;

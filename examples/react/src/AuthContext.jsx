@@ -57,7 +57,6 @@ export function AuthProvider({ children }) {
     );
     if (res.status === 401) {
       logout();
-      setErrorMessage && setErrorMessage('Session expired - please login again');
       return;
     }
     if (res.ok) {
