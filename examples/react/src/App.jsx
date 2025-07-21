@@ -1,6 +1,7 @@
 import { useAuth } from './AuthContext';
 import AuthForm from './AuthForm';
 import UserActions from './UserActions';
+import TableManager from './TableManager';
 import './App.css';
 
 function App() {
@@ -20,7 +21,10 @@ function App() {
 
       <main>
         {user ? (
-          <UserActions />
+          <>
+            <UserActions />
+            <TableManager />
+          </>
         ) : (
           <div className="auth-forms">
             <AuthForm formType="login" />

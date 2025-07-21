@@ -86,6 +86,29 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Table CRUD API
+  const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
+    try {
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'X-Project-Name': projectName,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(`http://localhost:3000/rest/v1/tables/${table}${endpoint}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : null
+      });
+      
+      if (!response.ok) throw new Error('Operation failed');
+      return await response.json();
+    } catch (error) {
+      console.error('Table operation error:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     if (token) {
       fetchUserProfile(token);
@@ -96,11 +119,13 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{ 
       user, 
       token, 
+      projectName,
       login, 
       register, 
       logout, 
       updateUser, 
-      deleteUser 
+      deleteUser,
+      fetchTableData
     }}>
       {children}
     </AuthContext.Provider>
