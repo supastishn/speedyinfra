@@ -5,17 +5,28 @@ const bcrypt = require('bcryptjs');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 const { authenticateToken } = require('../util/auth');
 
+// Helpers
+const getUser = async (id, projectName) => {
+  const usersDB = getTableDB('_users', projectName);
+  const findOneUser = promisifyDBMethod(usersDB, 'findOne');
+  return await findOneUser({ _id: id });
+};
+
+const updateUser = async (id, data, projectName) => {
+  const updatedData = {};
+  if (data.email) updatedData.email = data.email;
+  if (data.password) updatedData.password = await bcrypt.hash(data.password, 10);
+
+  const usersDB = getTableDB('_users', projectName);
+  const updateUser = promisifyDBMethod(usersDB, 'update');
+  await updateUser({ _id: id }, { $set: updatedData });
+};
+
 // Get user by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const usersDB = getTableDB('_users', req.projectName);
-    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
-
-    const user = await findOneUser({ _id: id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const user = await getUser(req.params.id, req.projectName);
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     const { password, ...safeUser } = user;
     res.status(200).json(safeUser);
@@ -28,26 +39,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password } = req.body;
-
-    const usersDB = getTableDB('_users', req.projectName);
-    const updateUser = promisifyDBMethod(usersDB, 'update');
-    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
-
-    const user = await findOneUser({ _id: id });
-    if (!user) {
+    if (!await getUser(id, req.projectName)) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const updatedData = {};
-    if (email) {
-      updatedData.email = email;
-    }
-    if (password) {
-      updatedData.password = await bcrypt.hash(password, 10);
-    }
-
-    await updateUser({ _id: id }, { $set: updatedData });
+    await updateUser(id, req.body, req.projectName);
     res.status(200).json({ message: 'User updated successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -79,13 +75,9 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // Get user profile (token-based)
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const { userId } = req.user;
-    const usersDB = getTableDB('_users', req.projectName);
-    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
-
-    const user = await findOneUser({ _id: userId });
+    const user = await getUser(req.user.userId, req.projectName);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     const { password, ...safeUser } = user;
     res.status(200).json(safeUser);
   } catch (err) {
@@ -97,28 +89,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.put('/update', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
-    req.params.id = userId;
-    // Reuse the update logic
-    const { email, password } = req.body;
-
-    const usersDB = getTableDB('_users', req.projectName);
-    const updateUser = promisifyDBMethod(usersDB, 'update');
-    const findOneUser = promisifyDBMethod(usersDB, 'findOne');
-
-    const user = await findOneUser({ _id: userId });
-    if (!user) {
+    if (!await getUser(userId, req.projectName)) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const updatedData = {};
-    if (email) {
-      updatedData.email = email;
-    }
-    if (password) {
-      updatedData.password = await bcrypt.hash(password, 10);
-    }
-
-    await updateUser({ _id: userId }, { $set: updatedData });
+    await updateUser(userId, req.body, req.projectName);
     res.status(200).json({ message: 'User updated successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
