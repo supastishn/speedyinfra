@@ -11,6 +11,7 @@ export default function TableManager() {
   const [perPage, setPerPage] = useState(5);
   const [count, setCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [viewType, setViewType] = useState('json');
   const { token, projectName } = useAuth();
 
   useEffect(() => {
@@ -57,8 +58,10 @@ export default function TableManager() {
       setResults(data);
       setErrorMessage('');
 
-      // Update document count for pagination
-      if (method === 'GET') {
+      // Pagination metadata from header
+      if (method === 'GET' && response.headers.get('X-Total-Count')) {
+        setCount(parseInt(response.headers.get('X-Total-Count')));
+      } else if (method === 'GET') {
         if (typeof data === 'object' && !Array.isArray(data)) {
           setCount(1);
         } else {
@@ -80,6 +83,64 @@ export default function TableManager() {
       setErrorMessage(error.message);
       setResults(null);
     }
+  };
+
+  // Document operations by ID
+  const handleReadById = () => {
+    if (!documentId) return setErrorMessage('Document ID required');
+    fetchTableData('GET', `/${documentId}`);
+  };
+
+  const handleUpdateById = () => {
+    if (!documentId) return setErrorMessage('Document ID required');
+    let dataObj;
+    try {
+      dataObj = JSON.parse(documentData || '{}');
+    } catch {
+      return setErrorMessage('Invalid JSON data');
+    }
+    fetchTableData('PATCH', `/${documentId}`, dataObj);
+  };
+
+  const handleDeleteById = () => {
+    if (!documentId) return setErrorMessage('Document ID required');
+    fetchTableData('DELETE', `/${documentId}`);
+  };
+
+  // Counting endpoint
+  const handleCount = async () => {
+    try {
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'X-Project-Name': projectName,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch(
+        `http://localhost:3000/rest/v1/tables/${tableName}/count`,
+        {
+          method: 'POST',
+          headers,
+          body: queryFilter
+        }
+      );
+      
+      const data = await response.json();
+      setResults({ count: data.count });
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  // Folder creation API
+  const handleCreateFolder = () => {
+    if (!tableName) return setErrorMessage('Folder name required');
+    fetchTableData('POST', '/_folders', { name: tableName });
+  };
+
+  // Error scenario demo
+  const triggerErrorDemo = () => {
+    fetchTableData('GET', '/invalid-endpoint');
   };
 
   const handleCreate = () => {
@@ -188,6 +249,28 @@ export default function TableManager() {
     }
   };
 
+  // Table view rendering
+  const renderTable = (data) => {
+    if (!Array.isArray(data) || data.length === 0) return <div>No data</div>;
+    const headers = Object.keys(data[0]);
+    return (
+      <table>
+        <thead>
+          <tr>
+            {headers.map(h => <th key={h}>{h}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, idx) => (
+            <tr key={idx}>
+              {headers.map(h => <td key={h}>{String(row[h])}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
   return (
     <div className="table-manager">
       <h2>Table API Demo</h2>
@@ -244,6 +327,12 @@ export default function TableManager() {
         <button onClick={handleRead}>Read</button>
         <button onClick={handleUpdate}>Update</button>
         <button onClick={handleDelete}>Delete</button>
+        <button onClick={handleReadById}>Get by ID</button>
+        <button onClick={handleUpdateById}>Update by ID</button>
+        <button onClick={handleDeleteById}>Delete by ID</button>
+        <button onClick={handleCount}>Count Documents</button>
+        <button onClick={handleCreateFolder}>Create Folder</button>
+        <button onClick={triggerErrorDemo}>Trigger Error</button>
       </div>
 
       {/* Pagination controls */}
@@ -280,7 +369,30 @@ export default function TableManager() {
       {results && (
         <div className="card results">
           <h3>Results:</h3>
-          <pre>{JSON.stringify(results, null, 2)}</pre>
+          <div>
+            <label>
+              <input 
+                type="radio" 
+                name="viewType" 
+                checked={viewType === 'json'} 
+                onChange={() => setViewType('json')}
+              /> JSON View
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                name="viewType" 
+                checked={viewType === 'table'} 
+                onChange={() => setViewType('table')}
+              /> Table View
+            </label>
+          </div>
+          {viewType === 'json' && (
+            <pre>{JSON.stringify(results, null, 2)}</pre>
+          )}
+          {viewType === 'table' && Array.isArray(results) && (
+            renderTable(results)
+          )}
         </div>
       )}
     </div>
