@@ -3,12 +3,13 @@ import AuthForm from './AuthForm';
 import UserActions from './UserActions';
 import TableManager from './TableManager';
 import './App.css';
+import ErrorBoundary from './ErrorBoundary';
 
 function App() {
   const { user, logout } = useAuth();
 
   return (
-    <>
+    <ErrorBoundary>
       <header>
         <h1>SpeedyInfra API Demo</h1>
         {user && (
@@ -32,7 +33,7 @@ function App() {
           </div>
         )}
       </main>
-    </>
+    </ErrorBoundary>
   );
 }
 
