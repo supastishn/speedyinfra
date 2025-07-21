@@ -11,11 +11,13 @@ export default function TableManager() {
   const [perPage, setPerPage] = useState(5);
   const [count, setCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [viewType, setViewType] = useState('json');
   const { token, projectName } = useAuth();
 
   useEffect(() => {
     setErrorMessage('');
+    setValidationError('');
   }, [tableName, documentId, queryFilter, documentData]);
 
   const fetchTableData = async (method, endpoint, body = null) => {
@@ -51,12 +53,27 @@ export default function TableManager() {
 
       if (!response.ok) {
         setResults(null);
-        setErrorMessage(data.error || data.message || data);
+        if (response.status === 400 && data.error) {
+          setValidationError(data.error);
+        } else {
+          setErrorMessage(data.error || data.message || data);
+        }
         return;
       }
 
       setResults(data);
       setErrorMessage('');
+      setValidationError('');
+
+      // Document count display from header
+      if (method === 'GET' && Array.isArray(data)) {
+        setCount(data.length);
+        // Add actual count from response header
+        const totalCount = response.headers.get('X-Total-Count');
+        if (totalCount) {
+          setCount(parseInt(totalCount));
+        }
+      }
 
       // Pagination metadata from header
       if (method === 'GET' && response.headers.get('X-Total-Count')) {
@@ -64,7 +81,7 @@ export default function TableManager() {
       } else if (method === 'GET') {
         if (typeof data === 'object' && !Array.isArray(data)) {
           setCount(1);
-        } else {
+        } else if (Array.isArray(data)) {
           setCount(data.length);
           // Fetch total count for pagination
           const countRes = await fetch(`http://localhost:3000/rest/v1/tables/${tableName}/count`, {
@@ -143,6 +160,13 @@ export default function TableManager() {
     fetchTableData('GET', '/invalid-endpoint');
   };
 
+  // Validation demo
+  const triggerValidationDemo = () => {
+    setTableName('products');
+    setDocumentData('{"price": -5}');
+    setQueryFilter('{}');
+  };
+
   const handleCreate = () => {
     let dataObj;
     try {
@@ -215,6 +239,7 @@ export default function TableManager() {
   const loadDemoData = (demoType) => {
     setDocumentId('');
     setErrorMessage('');
+    setValidationError('');
 
     switch(demoType) {
       case 'users':
@@ -245,6 +270,21 @@ export default function TableManager() {
           total: 1599.98,
           status: "shipped"
         }, null, 2));
+        break;
+
+      case 'nested':
+        setTableName('complex_data');
+        setQueryFilter('{"metadata.tags":{"$in":["priority"]}}');
+        setDocumentData(JSON.stringify([
+          {
+            title: "Main Document",
+            metadata: {
+              tags: ["priority", "backend"],
+              author: { name: "Admin", id: 123 }
+            },
+            revisions: [1, 2, 3]
+          }
+        ], null, 2));
         break;
     }
   };
@@ -280,6 +320,7 @@ export default function TableManager() {
         <button onClick={() => loadDemoData('users')}>Demo: Users</button>
         <button onClick={() => loadDemoData('products')}>Demo: Products</button>
         <button onClick={() => loadDemoData('orders')}>Demo: Orders</button>
+        <button onClick={() => loadDemoData('nested')}>Demo: Nested Data</button>
       </div>
 
       <div className="card">
@@ -333,6 +374,7 @@ export default function TableManager() {
         <button onClick={handleCount}>Count Documents</button>
         <button onClick={handleCreateFolder}>Create Folder</button>
         <button onClick={triggerErrorDemo}>Trigger Error</button>
+        <button onClick={triggerValidationDemo}>Validation Demo</button>
       </div>
 
       {/* Pagination controls */}
@@ -363,6 +405,14 @@ export default function TableManager() {
         <div className="error">
           <h3>Error ⚠️</h3>
           <pre>{errorMessage}</pre>
+        </div>
+      )}
+
+      {/* Validation error display */}
+      {validationError && (
+        <div className="validation-error">
+          <h3>Validation Error ⚠️</h3>
+          <pre>{validationError}</pre>
         </div>
       )}
 

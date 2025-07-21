@@ -108,3 +108,11 @@
   border-radius: 4px;
   margin-bottom: 1rem;
 }
+
+.validation-error {
+  background-color: #fff3e0;
+  color: #ef6c00;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
