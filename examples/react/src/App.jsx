@@ -1,12 +1,12 @@
-import { useAuth } from './AuthContext';
-import AuthForm from './AuthForm';
-import UserActions from './UserActions';
-import TableManager from './TableManager';
-import './App.css';
-import ErrorBoundary from './ErrorBoundary';
+import { useAuth } from './AuthContext'
+import AuthForm from './AuthForm'
+import UserActions from './UserActions'
+import TableManager from './TableManager'
+import './App.css'
+import ErrorBoundary from './ErrorBoundary'
 
 function App() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth()
 
   return (
     <ErrorBoundary>
@@ -19,7 +19,6 @@ function App() {
           </div>
         )}
       </header>
-
       <main>
         {user ? (
           <>
@@ -34,7 +33,7 @@ function App() {
         )}
       </main>
     </ErrorBoundary>
-  );
+  )
 }
 
-export default App;
+export default App

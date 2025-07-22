@@ -2,24 +2,30 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 function APIResultDisplay({ results, viewType, setViewType }) {
-  const renderTable = (data) => {
-    if (!Array.isArray(data) || data.length === 0) return <div>No data</div>;
-    const headers = Object.keys(data[0]);
+  const renderTableResults = data => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return <div>No data available</div>
+    }
+    const headers = Object.keys(data[0])
     return (
       <table>
         <thead>
-          <tr>{headers.map(h => <th key={h}>{h}</th>)}</tr>
+          <tr>{headers.map(header => <th key={header}>{header}</th>)}</tr>
         </thead>
         <tbody>
-          {data.map((row, idx) => (
-            <tr key={idx}>
-              {headers.map(h => <td key={h}>{String(row[h])}</td>)}
+          {data.map((row, index) => (
+            <tr key={index}>
+              {headers.map(header => (
+                <td key={`${index}-${header}`}>
+                  {String(row[header])}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
       </table>
-    );
-  };
+    )
+  }
 
   return (
     <div className="card results">
@@ -43,9 +49,9 @@ function APIResultDisplay({ results, viewType, setViewType }) {
         </label>
       </div>
       {viewType === 'json' && <pre>{JSON.stringify(results, null, 2)}</pre>}
-      {viewType === 'table' && Array.isArray(results) && renderTable(results)}
+      {viewType === 'table' && renderTableResults(results)}
     </div>
-  );
+  )
 }
 
 export default function TableManager() {

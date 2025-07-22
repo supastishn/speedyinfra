@@ -2,17 +2,16 @@ import { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const apiClient = (method, endpoint, token, projectName, body) => {
-  return fetch(`http://localhost:3000${endpoint}`, {
+const apiClient = async (method, endpoint, token, projectName, body) =>
+  fetch(`http://localhost:3000${endpoint}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'X-Project-Name': projectName,
       ...(token && { Authorization: `Bearer ${token}` })
     },
-    body: body ? JSON.stringify(body) : null
-  });
-};
+    body: body ? JSON.stringify(body) : undefined
+  })
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
