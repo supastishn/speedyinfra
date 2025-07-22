@@ -28,6 +28,7 @@ function App() {
         ) : (
           <div className="auth-forms">
             <AuthForm formType="login" />
+            <div className="auth-divider">or</div>
             <AuthForm formType="register" />
           </div>
         )}

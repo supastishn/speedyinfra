@@ -13,26 +13,40 @@ export default function AuthForm({ formType }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>{formType === 'login' ? 'Login' : 'Register'}</h2>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        minLength="6"
-        required
-      />
-      <button type="submit">
-        {formType === 'login' ? 'Sign In' : 'Create Account'}
-      </button>
-    </form>
+    <div className="card">
+      <h3 className="card-header">
+        {formType === 'login' ? 'Login' : 'Create Account'}
+      </h3>
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="input-group">
+          <label className="input-label">Email</label>
+          <input
+            className="styled-input"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Password</label>
+          <input
+            className="styled-input"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            minLength="6"
+            required
+          />
+        </div>
+        <button 
+          className="primary-btn" 
+          type="submit"
+          style={{ marginTop: '15px', width: '100%' }}
+        >
+          {formType === 'login' ? 'Sign In' : 'Register'}
+        </button>
+      </form>
+    </div>
   )
 }
