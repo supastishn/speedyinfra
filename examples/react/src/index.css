@@ -1,9 +1,4 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  
-  /* Theme variables */
   --bg-dark: #121212;
   --bg-card: #1e1e1e;
   --bg-nav: #181818;
@@ -11,6 +6,9 @@
   --text-secondary: #b0b0b0;
   --accent: #646cff;
   --accent-hover: #535bf2;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 body {
