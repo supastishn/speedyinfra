@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import Navbar from './Navbar';
 import LandingPage from './LandingPage';
@@ -12,7 +12,7 @@ function App() {
   const { user } = useAuth();
 
   return (
-    <BrowserRouter>
+    <>
       <ErrorBoundary>
         <Navbar />
         <main>
@@ -31,7 +31,7 @@ function App() {
           </Routes>
         </main>
       </ErrorBoundary>
-    </BrowserRouter>
+    </>
   );
 }
 
