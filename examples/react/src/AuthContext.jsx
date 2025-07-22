@@ -90,6 +90,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    window.location.href = '/login';  // Add this line
   };
 
   // Table CRUD API

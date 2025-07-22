@@ -1,40 +1,38 @@
-import { useAuth } from './AuthContext'
-import AuthForm from './AuthForm'
-import UserActions from './UserActions'
-import TableManager from './TableManager'
-import './App.css'
-import ErrorBoundary from './ErrorBoundary'
+import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import Navbar from './Navbar';
+import LandingPage from './LandingPage';
+import AuthForm from './AuthForm';
+import UserActions from './UserActions';
+import TableManager from './TableManager';
+import './App.css';
+import ErrorBoundary from './ErrorBoundary';
 
 function App() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth();
 
   return (
-    <ErrorBoundary>
-      <header>
-        <h1>SpeedyInfra API Demo</h1>
-        {user && (
-          <div className="user-info">
-            <span>{user.email}</span>
-            <button onClick={logout}>Logout</button>
-          </div>
-        )}
-      </header>
-      <main>
-        {user ? (
-          <>
-            <UserActions />
-            <TableManager />
-          </>
-        ) : (
-          <div className="auth-forms">
-            <AuthForm formType="login" />
-            <div className="auth-divider">or</div>
-            <AuthForm formType="register" />
-          </div>
-        )}
-      </main>
-    </ErrorBoundary>
-  )
+    <BrowserRouter>
+      <ErrorBoundary>
+        <Navbar />
+        <main>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<AuthForm formType="login" />} />
+            <Route path="/register" element={<AuthForm formType="register" />} />
+            <Route 
+              path="/app"
+              element={user ? <TableManager /> : <Navigate to="/login" replace />}
+            />
+            <Route 
+              path="/app/profile" 
+              element={user ? <UserActions /> : <Navigate to="/login" replace />} 
+            />
+          </Routes>
+        </main>
+      </ErrorBoundary>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
