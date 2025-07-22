@@ -83,34 +83,37 @@ export default function TableManager() {
 
       {/* Demo buttons */}
       <div className="demo-buttons">
-        <button onClick={() => loadDemoData('users')}>Demo: Users</button>
-        <button onClick={() => loadDemoData('products')}>Demo: Products</button>
-        <button onClick={() => loadDemoData('orders')}>Demo: Orders</button>
-        <button onClick={() => loadDemoData('nested')}>Demo: Nested Data</button>
+        <button className="demo-btn" onClick={() => loadDemoData('users')}>Users</button>
+        <button className="demo-btn" onClick={() => loadDemoData('products')}>Products</button>
+        <button className="demo-btn" onClick={() => loadDemoData('orders')}>Orders</button>
+        <button className="demo-btn" onClick={() => loadDemoData('nested')}>Nested Data</button>
       </div>
 
       <div className="card">
         <label>
           Table Name:
           <input
+            className="styled-input"
             value={tableName}
             onChange={e => setTableName(e.target.value)}
           />
         </label>
       </div>
 
-      <div className="card grid">
-        <div>
-          <h3>Query Filter (JSON)</h3>
+      <div className="grid">
+        <div className="card">
+          <h3 className="card-header">Query Filter (JSON)</h3>
           <textarea
+            className="styled-textarea"
             value={queryFilter}
             onChange={e => setQueryFilter(e.target.value)}
             placeholder={'{"name":"Product1"}'}
           />
 
           <div className="doc-id-input">
-            <label>Document ID:</label>
+            <label className="input-label">Document ID:</label>
             <input
+              className="styled-input"
               value={documentId}
               onChange={e => setDocumentId(e.target.value)}
               placeholder="Specify for single document operations"
@@ -118,9 +121,10 @@ export default function TableManager() {
           </div>
         </div>
 
-        <div>
-          <h3>Document Data (JSON)</h3>
+        <div className="card">
+          <h3 className="card-header">Document Data (JSON)</h3>
           <textarea
+            className="styled-textarea"
             value={documentData}
             onChange={e => setDocumentData(e.target.value)}
             placeholder={'{"price":19.99}'}
@@ -128,19 +132,19 @@ export default function TableManager() {
         </div>
       </div>
 
-      <div className="card button-group">
-        <button onClick={handleCreate}>Create</button>
-        <button onClick={handleBulkCreate}>Bulk Create</button>
-        <button onClick={handleRead}>Read</button>
-        <button onClick={handleUpdate}>Update</button>
-        <button onClick={handleDelete}>Delete</button>
-        <button onClick={handleReadById}>Get by ID</button>
-        <button onClick={handleUpdateById}>Update by ID</button>
-        <button onClick={handleDeleteById}>Delete by ID</button>
-        <button onClick={handleCount}>Count Documents</button>
-        <button onClick={handleCreateFolder}>Create Folder</button>
-        <button onClick={triggerErrorDemo}>Trigger Error</button>
-        <button onClick={triggerValidationDemo}>Validation Demo</button>
+      <div className="button-group card">
+        <button className="primary-btn" onClick={handleCreate}>Create</button>
+        <button className="primary-btn" onClick={handleBulkCreate}>Bulk Create</button>
+        <button className="primary-btn" onClick={handleRead}>Read</button>
+        <button className="primary-btn" onClick={handleUpdate}>Update</button>
+        <button className="primary-btn" onClick={handleDelete}>Delete</button>
+        <button className="primary-btn" onClick={handleReadById}>Get by ID</button>
+        <button className="primary-btn" onClick={handleUpdateById}>Update by ID</button>
+        <button className="primary-btn" onClick={handleDeleteById}>Delete by ID</button>
+        <button className="primary-btn" onClick={handleCount}>Count Documents</button>
+        <button className="primary-btn" onClick={handleCreateFolder}>Create Folder</button>
+        <button className="primary-btn" onClick={triggerErrorDemo}>Trigger Error</button>
+        <button className="primary-btn" onClick={triggerValidationDemo}>Validation Demo</button>
       </div>
 
       {/* Pagination controls */}
