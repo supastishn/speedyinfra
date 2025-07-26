@@ -3,7 +3,7 @@ import { createContext, useState, useContext, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 const apiClient = async (method, endpoint, token, projectName, body) =>
-  fetch(`http://localhost:3000${endpoint}`, {
+  fetch(endpoint, {
     method,
     headers: {
       'Content-Type': 'application/json',
