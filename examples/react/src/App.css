@@ -48,6 +48,11 @@
   gap: 1rem;
 }
 
+.auth-form .styled-input {
+  background-color: black;
+  color: white;
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
