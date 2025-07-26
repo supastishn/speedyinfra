@@ -5,8 +5,10 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './AuthContext'
 
-// Initialize Eruda console unconditionally
-import('eruda').then(eruda => eruda.default.init());
+ // Initialize Eruda console for development
+if (import.meta.env.DEV) {
+  import('eruda').then((eruda) => eruda.default.init());
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
