@@ -3,12 +3,17 @@ const app = express()
 const port = 3000
 
 const rest_v1_router = require('./routes/rest_v1');
-const auth_router = require('./routes/auth');
-const users_router = require('./routes/users');
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Project-Name'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+  );
   next();
 });
 
@@ -20,8 +25,6 @@ app.use((req, res, next) => {
 });
 
 app.use('/rest/v1', rest_v1_router);
-app.use('/rest/v1/auth', auth_router);
-app.use('/rest/v1/users', users_router);
 
 app.get('/', (req, res) => {
   res.send('Hello World!')

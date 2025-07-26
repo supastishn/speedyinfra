@@ -30,8 +30,10 @@ const authenticateToken = (req, res, next) => {
 
 const tablesRouter = require('./tables');
 const authRouter = require('./auth');
+const usersRouter = require('./users');
 
 router.use('/tables', authenticateToken, tablesRouter);
 router.use('/auth', authRouter);
+router.use('/users', authenticateToken, usersRouter);
 
 module.exports = router;
