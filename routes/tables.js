@@ -9,7 +9,7 @@ router.get('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
     const find = promisifyDBMethod(db, 'find');
-    const docs = await find({});
+    const docs = await find(req.query);
     res.status(200).json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });

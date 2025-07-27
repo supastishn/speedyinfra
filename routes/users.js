@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
+const { updateUserSchema } = require('../util/validation');
 
 // Helpers
 const getUser = async (id, projectName) => {
@@ -19,6 +20,12 @@ const updateUser = async (id, data, projectName) => {
   const usersDB = getTableDB('_users', projectName);
   const updateUser = promisifyDBMethod(usersDB, 'update');
   await updateUser({ _id: id }, { $set: updatedData });
+};
+
+const deleteUserById = async (id, projectName) => {
+  const usersDB = getTableDB('_users', projectName);
+  const removeUser = promisifyDBMethod(usersDB, 'remove');
+  return await removeUser({ _id: id });
 };
 
 /**
@@ -41,8 +48,13 @@ router.get('/profile', async (req, res) => {
 // Update authenticated user
 router.put('/update', async (req, res) => {
   try {
+    const { error } = updateUserSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
     const { userId } = req.user;
-    if (!await getUser(userId, req.projectName)) {
+    if (!(await getUser(userId, req.projectName))) {
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -57,10 +69,7 @@ router.put('/update', async (req, res) => {
 router.delete('/delete', async (req, res) => {
   try {
     const { userId } = req.user;
-    const usersDB = getTableDB('_users', req.projectName);
-    const removeUser = promisifyDBMethod(usersDB, 'remove');
-
-    const numRemoved = await removeUser({ _id: userId });
+    const numRemoved = await deleteUserById(userId, req.projectName);
     if (numRemoved === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -87,8 +96,13 @@ router.get('/:id', async (req, res) => {
 // Update user by ID
 router.put('/:id', async (req, res) => {
   try {
+    const { error } = updateUserSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
     const { id } = req.params;
-    if (!await getUser(id, req.projectName)) {
+    if (!(await getUser(id, req.projectName))) {
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -103,10 +117,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const usersDB = getTableDB('_users', req.projectName);
-    const removeUser = promisifyDBMethod(usersDB, 'remove');
-
-    const numRemoved = await removeUser({ _id: id });
+    const numRemoved = await deleteUserById(id, req.projectName);
     if (numRemoved === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
