@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getTableDB, promisifyDBMethod } = require('../util/db');
+const { getTableDB, promisifyDBMethod, getProjectConfig } = require('../util/db');
 const { registerSchema, loginSchema } = require('../util/validation');
 
 router.post('/register', async (req, res) => {
@@ -58,9 +58,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const { jwtSecret } = getProjectConfig(req.projectName);
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.JWT_SECRET || 'default-secret',
+      jwtSecret,
       { expiresIn: '1h' }
     );
 

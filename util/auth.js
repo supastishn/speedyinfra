@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getProjectConfig } = require('./db');
 
 function authenticateToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -6,7 +7,9 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'default-secret', (err, user) => {
+  const { jwtSecret } = getProjectConfig(req.projectName);
+
+  jwt.verify(token, jwtSecret, (err, user) => {
     if (err) {
       return res.status(403).json({ error: 'Forbidden' });
     }
