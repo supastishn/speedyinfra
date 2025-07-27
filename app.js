@@ -19,10 +19,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-  req.projectName = req.headers['x-project-name'] || 'speedyinfra';
-  next();
-});
 
 app.use('/rest/v1', rest_v1_router);
 
