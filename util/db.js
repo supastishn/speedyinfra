@@ -9,7 +9,7 @@ function getTableDB(tableName, projectName = "") {
     throw new Error('Project name is required');
   }
 
-  const basePath = path.join(__dirname, `../../projects/${projectName}`);
+  const basePath = path.join(__dirname, `../projects/${projectName}`);
   
   if (!fs.existsSync(basePath)) {
     fs.mkdirSync(basePath, { recursive: true });

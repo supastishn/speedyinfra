@@ -57,7 +57,7 @@ router.delete('/:table', async (req, res) => {
 router.post('/:table/_folders', async (req, res) => {
   try {
     const tableName = req.params.table;
-    const folderPath = path.join(__dirname, `../../projects/${req.projectName}/_folders`);
+    const folderPath = path.join(__dirname, `../projects/${req.projectName}/_folders`);
     
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });

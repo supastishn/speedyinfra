@@ -55,8 +55,7 @@ describe('Auth API', () => {
       .send({ email: 'not-an-email', password: '123' });
 
     expect(res.statusCode).toBe(400);
-    expect(res.body).toHaveProperty('error');
-    expect(res.body.error).toContain('email must be a valid email');
+    expect(res.body).toHaveProperty('error', '"email" must be a valid email');
   });
 
   test('Login with valid credentials', async () => {

@@ -23,7 +23,7 @@ const tableDataSchema = Joi.object({
   tags: Joi.array().items(Joi.string()),
   metadata: Joi.object(),
   revisions: Joi.array().items(Joi.number()),
-});
+}).unknown(true);
 
 module.exports = {
   registerSchema,
