@@ -73,10 +73,6 @@ export default function TableManager() {
     setValidationError('');
   }, [tableName, documentId, queryFilter, documentData]);
 
-  // ... rest of TableManager logic unchanged ...
-
-  // (Paste all TableManager logic from above, except for the renderTable function and the results display block)
-
   return (
     <div className="table-manager">
       <h2>Table API Demo</h2>

@@ -16,7 +16,7 @@ const apiClient = async (method, endpoint, token, projectName, body) =>
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const projectName = "example_project"; // Hardcoded for demo
+  const projectName = "example_project";
 
   const login = async (email, password) => {
     const res = await apiClient(
@@ -90,10 +90,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    window.location.href = '/login';  // Add this line
+    window.location.href = '/login';
   };
 
-  // Table CRUD API
   const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
     try {
       const response = await apiClient(

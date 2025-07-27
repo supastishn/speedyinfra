@@ -17,13 +17,11 @@ beforeAll(async () => {
 
   const usersDB = getTableDB('_users', TEST_PROJECT);
 
-  // Register a user
   await request(app)
     .post('/rest/v1/auth/register')
     .set('X-Project-Name', TEST_PROJECT)
     .send({ email: testUserEmail, password: testUserPassword });
 
-  // Login to get token and user ID
   const loginRes = await request(app)
     .post('/rest/v1/auth/login')
     .set('X-Project-Name', TEST_PROJECT)
@@ -31,7 +29,6 @@ beforeAll(async () => {
 
   authToken = loginRes.body.token;
 
-  // Fetch the user to get their _id
   const findOne = promisifyDBMethod(usersDB, 'findOne');
   const user = await findOne({ email: testUserEmail });
   testUserId = user._id;
@@ -78,7 +75,6 @@ describe('User API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('message', 'User updated successfully');
 
-    // Verify the update by fetching the user again
     const updatedUserRes = await request(app)
       .get(`/rest/v1/users/${testUserId}`)
       .set('X-Project-Name', TEST_PROJECT)
@@ -96,7 +92,6 @@ describe('User API', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('message', 'User updated successfully');
-    // Note: Cannot directly verify password update due to hashing, but the API should confirm success.
   });
 
   test('PUT /users/:id - should fail validation for short password', async () => {
@@ -123,7 +118,6 @@ describe('User API', () => {
   });
 
   test('DELETE /users/:id - should delete user by ID', async () => {
-    // Create a new user to delete, to avoid affecting other tests
     const emailToDelete = `delete_me_${Date.now()}@example.com`;
     await request(app)
       .post('/rest/v1/auth/register')
@@ -142,7 +136,6 @@ describe('User API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('message', 'User deleted successfully');
 
-    // Verify deletion by trying to get the user again
     const deletedUserRes = await request(app)
       .get(`/rest/v1/users/${userToDelete._id}`)
       .set('X-Project-Name', TEST_PROJECT)
@@ -184,17 +177,15 @@ describe('User API', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('message', 'User updated successfully');
 
-      // Verify update
       const updatedUserRes = await request(app)
         .get(`/rest/v1/users/${testUserId}`)
         .set('X-Project-Name', TEST_PROJECT)
         .set('Authorization', `Bearer ${authToken}`);
       expect(updatedUserRes.body.email).toBe(newEmail);
-      testUserEmail = newEmail; // Keep email updated for subsequent tests
+      testUserEmail = newEmail;
     });
 
     test('DELETE /users/delete - should delete authenticated user', async () => {
-      // Create a new user and token to test deletion
       const tempEmail = `temp_user_${Date.now()}@example.com`;
       const tempPassword = 'password123';
       await request(app)
@@ -216,7 +207,6 @@ describe('User API', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('message', 'User deleted successfully');
 
-      // Verify user is gone by trying to login again
       const failedLoginRes = await request(app)
         .post('/rest/v1/auth/login')
         .set('X-Project-Name', TEST_PROJECT)

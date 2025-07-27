@@ -16,7 +16,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Cleanup project directory
   const fs = require('fs');
   const path = require('path');
   const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);

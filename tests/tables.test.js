@@ -32,7 +32,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Cleanup project directory
   const projectPath = path.join(__dirname, `../projects/${TEST_PROJECT}`);
 
   if (fs.existsSync(projectPath)) {
@@ -75,7 +74,6 @@ describe('Table CRUD API', () => {
   });
 
   test('Read documents with query', async () => {
-    // Create another document to test filtering
     await request(app)
       .post(`/rest/v1/tables/${TEST_TABLE}`)
       .set('X-Project-Name', TEST_PROJECT)
@@ -102,7 +100,6 @@ describe('Table CRUD API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('modified', 1);
 
-    // Verify update
     const verifyRes = await request(app)
       .get(`/rest/v1/tables/${TEST_TABLE}?name=Test+Item`)
       .set('X-Project-Name', TEST_PROJECT)
@@ -120,7 +117,6 @@ describe('Table CRUD API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('deleted', 1);
 
-    // Verify deletion
     const verifyRes = await request(app)
       .get(`/rest/v1/tables/${TEST_TABLE}?name=Another+Item`)
       .set('X-Project-Name', TEST_PROJECT)
@@ -138,7 +134,6 @@ describe('Table CRUD API', () => {
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('message', `Folder ${TEST_TABLE} created`);
 
-    // Verify folder exists
     const folderPath = path.join(
       __dirname,
       `../projects/${TEST_PROJECT}/_folders/${TEST_TABLE}.txt`

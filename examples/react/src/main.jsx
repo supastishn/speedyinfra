@@ -5,7 +5,6 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './AuthContext'
 
- // Initialize Eruda console for development
 if (import.meta.env.DEV) {
   import('eruda').then((eruda) => eruda.default.init());
 }

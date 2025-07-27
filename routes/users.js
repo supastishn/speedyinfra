@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 const { updateUserSchema } = require('../util/validation');
 
-// Helpers
 const getUser = async (id, projectName) => {
   const usersDB = getTableDB('_users', projectName);
   const findOneUser = promisifyDBMethod(usersDB, 'findOne');
@@ -32,7 +31,6 @@ const deleteUserById = async (id, projectName) => {
  * Additional endpoints for React SPA integration
  */
 
-// Get user profile (token-based)
 router.get('/profile', async (req, res) => {
   try {
     const user = await getUser(req.user.userId, req.projectName);
@@ -45,7 +43,6 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// Update authenticated user
 router.put('/update', async (req, res) => {
   try {
     const { error } = updateUserSchema.validate(req.body);
@@ -65,7 +62,6 @@ router.put('/update', async (req, res) => {
   }
 });
 
-// Delete authenticated user
 router.delete('/delete', async (req, res) => {
   try {
     const { userId } = req.user;
@@ -80,7 +76,6 @@ router.delete('/delete', async (req, res) => {
   }
 });
 
-// Get user by ID
 router.get('/:id', async (req, res) => {
   try {
     const user = await getUser(req.params.id, req.projectName);
@@ -93,7 +88,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update user by ID
 router.put('/:id', async (req, res) => {
   try {
     const { error } = updateUserSchema.validate(req.body);
@@ -113,7 +107,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete user by ID
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
