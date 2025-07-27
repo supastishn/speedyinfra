@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { getTableDB, promisifyDBMethod } = require('../util/db');
 const { updateUserSchema } = require('../util/validation');
+const { authorizeRole } = require('../util/auth');
 
 const getUser = async (id, projectName) => {
   const usersDB = getTableDB('_users', projectName);
@@ -88,7 +89,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authorizeRole(['admin']), async (req, res) => {
   try {
     const { error } = updateUserSchema.validate(req.body);
     if (error) {
@@ -107,7 +108,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const numRemoved = await deleteUserById(id, req.projectName);

@@ -8,8 +8,47 @@ const { tableDataSchema } = require('../util/validation');
 router.get('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
-    const find = promisifyDBMethod(db, 'find');
-    const docs = await find(req.query);
+    const { query } = req;
+
+    const page = parseInt(query._page, 10) || 1;
+    const limit = parseInt(query._limit, 10) || 10;
+    const sortField = query._sort;
+    const sortOrder = query._order === 'desc' ? -1 : 1;
+
+    const filter = {};
+    for (const key in query) {
+      if (key.startsWith('_')) continue;
+      
+      if (key.endsWith('_gte')) {
+        const field = key.slice(0, -4);
+        filter[field] = { ...filter[field], $gte: query[key] };
+      } else if (key.endsWith('_lte')) {
+        const field = key.slice(0, -4);
+        filter[field] = { ...filter[field], $lte: query[key] };
+      } else if (key.endsWith('_ne')) {
+        const field = key.slice(0, -3);
+        filter[field] = { $ne: query[key] };
+      } else {
+        filter[key] = query[key];
+      }
+    }
+
+    let cursor = db.find(filter);
+    if (sortField) {
+      cursor = cursor.sort({ [sortField]: sortOrder });
+    }
+    cursor = cursor.skip((page - 1) * limit).limit(limit);
+
+    const promisifiedExec = () => new Promise((resolve, reject) => {
+      cursor.exec((err, docs) => err ? reject(err) : resolve(docs));
+    });
+    
+    const [docs, total] = await Promise.all([
+      promisifiedExec(),
+      promisifyDBMethod(db, 'count')(filter)
+    ]);
+
+    res.setHeader('X-Total-Count', total);
     res.status(200).json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });

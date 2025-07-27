@@ -1,6 +1,15 @@
 const jwt = require('jsonwebtoken');
 const { getProjectConfig } = require('./db');
 
+function authorizeRole(requiredRoles) {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role || !requiredRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+    next();
+  };
+}
+
 function authenticateToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
@@ -18,4 +27,4 @@ function authenticateToken(req, res, next) {
   });
 }
 
-module.exports = { authenticateToken };
+module.exports = { authenticateToken, authorizeRole };

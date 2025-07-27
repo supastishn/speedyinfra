@@ -16,17 +16,22 @@ router.post('/register', async (req, res) => {
     const usersDB = getTableDB('_users', req.projectName);
     const findOneUser = promisifyDBMethod(usersDB, 'findOne');
     const insertUser = promisifyDBMethod(usersDB, 'insert');
+    const countUsers = promisifyDBMethod(usersDB, 'count');
 
     const existing = await findOneUser({ email });
     if (existing) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
+    const userCount = await countUsers({});
+    const role = userCount === 0 ? 'admin' : 'user';
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = { 
-      email, 
-      password: hashedPassword, 
-      createdAt: new Date() 
+    const newUser = {
+      email,
+      password: hashedPassword,
+      role,
+      createdAt: new Date()
     };
     
     const savedUser = await insertUser(newUser);
@@ -60,7 +65,7 @@ router.post('/login', async (req, res) => {
 
     const { jwtSecret } = getProjectConfig(req.projectName);
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role },
       jwtSecret,
       { expiresIn: '1h' }
     );

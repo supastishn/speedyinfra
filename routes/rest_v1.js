@@ -16,7 +16,9 @@ router.use((req, res, next) => {
 const tablesRouter = require('./tables');
 const authRouter = require('./auth');
 const usersRouter = require('./users');
+const storageRouter = require('./storage');
 
+router.use('/storage', authenticateToken, storageRouter);
 router.use('/tables', authenticateToken, tablesRouter);
 router.use('/auth', authRouter);
 router.use('/users', authenticateToken, usersRouter);
