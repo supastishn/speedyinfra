@@ -66,12 +66,134 @@ export default function TableManager() {
   const [errorMessage, setErrorMessage] = useState('');
   const [validationError, setValidationError] = useState('');
   const [viewType, setViewType] = useState('json');
-  const { token, projectName } = useAuth();
+  const { fetchTableData } = useAuth();
 
   useEffect(() => {
     setErrorMessage('');
     setValidationError('');
   }, [tableName, documentId, queryFilter, documentData]);
+
+  const handleApiCall = async (apiCall, successCallback) => {
+    try {
+      setErrorMessage('');
+      setValidationError('');
+      const result = await apiCall();
+      if (successCallback) {
+        successCallback(result);
+      } else {
+        setResults(result);
+      }
+    } catch (e) {
+      setErrorMessage(e.message);
+    }
+  };
+
+  const loadDemoData = (demoType) => {
+    const demos = {
+      users: { table: 'users', query: '{}', data: '{"name": "John Doe", "email": "john.doe@example.com"}' },
+      products: { table: 'products', query: '{"category":"electronics"}', data: '{"name":"Laptop", "price":1200, "category":"electronics", "tags":["tech", "portable"]}' },
+      orders: { table: 'orders', query: '{}', data: '{"product_id":"123", "quantity":2, "status":"shipped"}' },
+      nested: { table: 'configs', query: '{}', data: '{"name":"main_config", "settings":{"theme":"dark", "notifications":true}}' },
+    };
+    const demo = demos[demoType];
+    if (demo) {
+      setTableName(demo.table);
+      setQueryFilter(demo.query);
+      setDocumentData(demo.data);
+    }
+  };
+
+  const handleCreate = () => {
+    try {
+      const data = JSON.parse(documentData);
+      handleApiCall(() => fetchTableData(tableName, '', 'POST', data));
+    } catch (e) { setValidationError('Invalid JSON in Document Data'); }
+  };
+
+  const handleBulkCreate = () => {
+    try {
+      const data = JSON.parse(documentData);
+      if (!Array.isArray(data)) {
+        setValidationError('Bulk create requires an array of documents.');
+        return;
+      }
+      handleApiCall(() => fetchTableData(tableName, '', 'POST', data));
+    } catch (e) { setValidationError('Invalid JSON in Document Data'); }
+  };
+
+  const handleRead = () => {
+    try {
+      const query = JSON.parse(queryFilter);
+      const params = new URLSearchParams(query);
+      params.append('_page', page);
+      params.append('_limit', perPage);
+      handleApiCall(
+        () => fetchTableData(tableName, `?${params.toString()}`),
+        (res) => {
+          setResults(res.data);
+          setCount(res.totalCount);
+        }
+      );
+    } catch (e) { setValidationError('Invalid JSON in Query Filter'); }
+  };
+
+  const handleUpdate = () => {
+    try {
+      const query = JSON.parse(queryFilter);
+      const data = JSON.parse(documentData);
+      const params = new URLSearchParams(query);
+      handleApiCall(() => fetchTableData(tableName, `?${params.toString()}`, 'PATCH', data));
+    } catch (e) { setValidationError('Invalid JSON in one of the fields'); }
+  };
+
+  const handleDelete = () => {
+    try {
+      const query = JSON.parse(queryFilter);
+      const params = new URLSearchParams(query);
+      handleApiCall(() => fetchTableData(tableName, `?${params.toString()}`, 'DELETE'));
+    } catch (e) { setValidationError('Invalid JSON in Query Filter'); }
+  };
+
+  const handleReadById = () => {
+    if (!documentId) { setValidationError('Document ID is required'); return; }
+    handleApiCall(() => fetchTableData(tableName, `/${documentId}`));
+  };
+  
+  const handleUpdateById = () => {
+    if (!documentId) { setValidationError('Document ID is required'); return; }
+    try {
+      const data = JSON.parse(documentData);
+      handleApiCall(() => fetchTableData(tableName, `/${documentId}`, 'PUT', data));
+    } catch (e) { setValidationError('Invalid JSON in Document Data'); }
+  };
+  
+  const handleDeleteById = () => {
+    if (!documentId) { setValidationError('Document ID is required'); return; }
+    handleApiCall(() => fetchTableData(tableName, `/${documentId}`, 'DELETE'));
+  };
+
+  const handleCount = () => {
+    try {
+      const query = JSON.parse(queryFilter);
+      handleApiCall(
+        () => fetchTableData(tableName, `/_count`, 'POST', query),
+        (res) => setResults({ count: res.count })
+      );
+    } catch (e) { setValidationError('Invalid JSON in Query Filter'); }
+  };
+
+  const handleCreateFolder = () => {
+    handleApiCall(() => fetchTableData(tableName, '/_folders', 'POST'));
+  };
+
+  const triggerErrorDemo = () => {
+    setErrorMessage('This is a demo client-side error. Check browser console for more details.');
+    console.error('This is a simulated error event.');
+  };
+
+  const triggerValidationDemo = () => {
+    setValidationError('This is a demo validation error. It appears when input is incorrect.');
+  };
 
   return (
     <div className="table-manager">

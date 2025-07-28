@@ -172,8 +172,20 @@ export function AuthProvider({ children }) {
         projectName,
         body
       );
-      if (!response.ok) throw new Error('Operation failed');
-      return await response.json();
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Operation failed' }));
+        throw new Error(errorData.error || 'An unknown error occurred');
+      }
+
+      const totalCount = response.headers.get('X-Total-Count');
+      const data = await response.json();
+
+      if (totalCount !== null) {
+        return { data, totalCount: parseInt(totalCount, 10) };
+      }
+
+      return data;
     } catch (error) {
       console.error('Table operation error:', error);
       throw error;

@@ -5,6 +5,55 @@ const path = require('path');
 const fs = require('fs');
 const { tableDataSchema } = require('../util/validation');
 
+// Get document by ID
+router.get('/:table/:id', async (req, res) => {
+  try {
+    const db = getTableDB(req.params.table, req.projectName);
+    const findOne = promisifyDBMethod(db, 'findOne');
+    const doc = await findOne({ _id: req.params.id });
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(200).json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update document by ID
+router.put('/:table/:id', async (req, res) => {
+  try {
+    const { error } = tableDataSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    const db = getTableDB(req.params.table, req.projectName);
+    const update = promisifyDBMethod(db, 'update');
+    const numReplaced = await update({ _id: req.params.id }, { ...req.body, updatedAt: new Date() });
+    if (numReplaced === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(200).json({ modified: numReplaced });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete document by ID
+router.delete('/:table/:id', async (req, res) => {
+  try {
+    const db = getTableDB(req.params.table, req.projectName);
+    const remove = promisifyDBMethod(db, 'remove');
+    const numRemoved = await remove({ _id: req.params.id }, {});
+    if (numRemoved === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(200).json({ deleted: numRemoved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -88,6 +137,18 @@ router.delete('/:table', async (req, res) => {
     const remove = promisifyDBMethod(db, 'remove');
     const result = await remove(req.query, { multi: true });
     res.status(200).json({ deleted: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Count documents based on filter
+router.post('/:table/_count', async (req, res) => {
+  try {
+    const db = getTableDB(req.params.table, req.projectName);
+    const count = promisifyDBMethod(db, 'count');
+    const numDocs = await count(req.body || {});
+    res.status(200).json({ count: numDocs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
