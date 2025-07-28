@@ -27,6 +27,12 @@ const Navbar = () => {
               Dashboard
             </Link>
             <Link 
+              to="/app/storage" 
+              className={location.pathname.includes('storage') ? 'active' : ''}
+            >
+              Storage
+            </Link>
+            <Link 
               to="/app/profile" 
               className={location.pathname.includes('profile') ? 'active' : ''}
             >

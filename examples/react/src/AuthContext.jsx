@@ -13,6 +13,25 @@ const apiClient = async (method, endpoint, token, projectName, body) =>
     body: body ? JSON.stringify(body) : undefined
   })
 
+const uploadApiClient = async (endpoint, token, projectName, formData) =>
+  fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'X-Project-Name': projectName,
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    body: formData
+  });
+
+const downloadApiClient = async (endpoint, token, projectName) =>
+  fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'X-Project-Name': projectName,
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  });
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -86,6 +105,57 @@ export function AuthProvider({ children }) {
     logout();
   };
 
+  const uploadFiles = async (formData) => {
+      const res = await uploadApiClient(
+        '/rest/v1/storage/upload',
+        token,
+        projectName,
+        formData
+      );
+      if (!res.ok) throw new Error('Upload failed');
+      return await res.json();
+  };
+
+  const listFiles = async () => {
+      const res = await apiClient(
+        'GET',
+        '/rest/v1/storage/files',
+        token,
+        projectName
+      );
+      if (!res.ok) throw new Error('Could not list files');
+      return await res.json();
+  };
+
+  const downloadFile = async (filename) => {
+      const res = await downloadApiClient(
+        `/rest/v1/storage/files/${filename}`,
+        token,
+        projectName
+      );
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+  };
+
+  const deleteFile = async (filename) => {
+      const res = await apiClient(
+        'DELETE',
+        `/rest/v1/storage/files/${filename}`,
+        token,
+        projectName
+      );
+      if (!res.ok) throw new Error('Delete failed');
+      return await res.json();
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
@@ -126,7 +196,11 @@ export function AuthProvider({ children }) {
       logout, 
       updateUser, 
       deleteUser,
-      fetchTableData
+      fetchTableData,
+      uploadFiles,
+      listFiles,
+      downloadFile,
+      deleteFile
     }}>
       {children}
     </AuthContext.Provider>

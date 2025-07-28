@@ -5,6 +5,7 @@ import LandingPage from './LandingPage';
 import AuthForm from './AuthForm';
 import UserActions from './UserActions';
 import TableManager from './TableManager';
+import StorageManager from './StorageManager';
 import './App.css';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -23,6 +24,10 @@ function App() {
             <Route 
               path="/app"
               element={user ? <TableManager /> : <Navigate to="/login" replace />}
+            />
+            <Route 
+              path="/app/storage" 
+              element={user ? <StorageManager /> : <Navigate to="/login" replace />} 
             />
             <Route 
               path="/app/profile" 
