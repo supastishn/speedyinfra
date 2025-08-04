@@ -329,8 +329,12 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.warn('Table operation error, falling back to offline DB:', error);
       
-      const docIdMatch = endpoint.match(/^\/([^/?]+)/);
+      const isCount = endpoint === '/_count';
+      const isFolders = endpoint === '/_folders';
+      const docIdMatch = !isCount && !isFolders ? endpoint.match(/^\/([^/?]+)/) : null;
       const docId = docIdMatch ? docIdMatch[1] : null;
+      const queryParams = new URLSearchParams(endpoint.split('?')[1] || '');
+      const query = Object.fromEntries(queryParams.entries());
 
       switch (method) {
         case 'GET': {
@@ -339,27 +343,34 @@ export function AuthProvider({ children }) {
             if (!data) throw new Error('Item not found in offline cache.');
             return data;
           }
-          const queryParams = new URLSearchParams(endpoint.split('?')[1] || '');
-          const query = Object.fromEntries(queryParams.entries());
-          const data = await offlineDB.queryTable(table, query);
-          return { data, totalCount: data.length };
+          return await offlineDB.queryTable(table, { ...query, ...body });
         }
-        case 'POST':
+        case 'POST': {
+          if (isCount) {
+            const count = await offlineDB.countTableItems(table, body);
+            return { count };
+          }
+          if (isFolders) {
+            return { message: `Folder ${table} created (offline)` };
+          }
           return await offlineDB.addTableItem(table, body);
+        }
         case 'PUT':
           if (!docId) throw new Error('Document ID required for PUT');
           await offlineDB.updateTableItem(table, docId, body);
           return { modified: 1 };
-        case 'DELETE':
+        case 'DELETE': {
             if (docId) {
               const deleted = await offlineDB.deleteTableItem(table, docId);
               return { deleted };
             }
-            // NOTE: Offline mode does not support bulk delete by query.
-            throw new Error('Offline bulk delete not supported');
-        case 'PATCH':
-            // NOTE: Offline mode does not support bulk update by query.
-            throw new Error('Offline bulk update not supported');
+            const deleted = await offlineDB.deleteTableItemsByQuery(table, query);
+            return { deleted };
+        }
+        case 'PATCH': {
+            const modified = await offlineDB.updateTableItemsByQuery(table, query, body);
+            return { modified };
+        }
         default:
           throw error;
       }

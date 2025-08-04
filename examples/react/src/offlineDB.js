@@ -178,19 +178,58 @@ export async function deleteTableItem(tableName, id) {
   return 0;
 }
 
-export async function queryTable(tableName, query) {
+async function getFilteredItems(tableName, query) {
   const db = await dbPromise;
   let items = await db.getAllFromIndex('tables', 'by_table', tableName);
 
-  if (query && Object.keys(query).length > 0) {
-    items = items.filter(item => {
-      return Object.entries(query).every(([key, value]) => {
-        if (key.startsWith('_')) return true;
-        return String(item[key]) === String(value);
-      });
+  if (query) {
+    const filterPredicates = [];
+    for (const key in query) {
+      if (key.startsWith('_')) continue;
+      const value = query[key];
+
+      if (key.endsWith('_gte')) {
+        const field = key.slice(0, -4);
+        filterPredicates.push(item => item[field] >= parseFloat(value));
+      } else if (key.endsWith('_lte')) {
+        const field = key.slice(0, -4);
+        filterPredicates.push(item => item[field] <= parseFloat(value));
+      } else if (key.endsWith('_ne')) {
+        const field = key.slice(0, -3);
+        filterPredicates.push(item => String(item[field]) !== String(value));
+      } else {
+        filterPredicates.push(item => String(item[key]) === String(value));
+      }
+    }
+
+    if (filterPredicates.length > 0) {
+      items = items.filter(item => filterPredicates.every(p => p(item)));
+    }
+  }
+
+  return items;
+}
+
+export async function queryTable(tableName, query) {
+  let items = await getFilteredItems(tableName, query);
+  const totalCount = items.length;
+
+  const page = parseInt(query._page, 10) || 1;
+  const limit = parseInt(query._limit, 10) || Infinity;
+  const sortField = query._sort;
+  const sortOrder = query._order === 'desc' ? -1 : 1;
+
+  if (sortField) {
+    items.sort((a, b) => {
+      if (a[sortField] < b[sortField]) return -1 * sortOrder;
+      if (a[sortField] > b[sortField]) return 1 * sortOrder;
+      return 0;
     });
   }
-  return items;
+
+  const paginatedItems = limit === Infinity ? items : items.slice((page - 1) * limit, page * limit);
+
+  return { data: paginatedItems, totalCount };
 }
 
 export async function clearAllData() {
@@ -201,4 +240,34 @@ export async function clearAllData() {
     db.clear('file-blobs'),
     db.clear('_users'),
   ]);
+}
+
+export async function countTableItems(tableName, query) {
+  const items = await getFilteredItems(tableName, query);
+  return items.length;
+}
+
+export async function updateTableItemsByQuery(tableName, query, updates) {
+  const db = await dbPromise;
+  const itemsToUpdate = await getFilteredItems(tableName, query);
+
+  const tx = db.transaction('tables', 'readwrite');
+  for (const item of itemsToUpdate) {
+    const updatedItem = { ...item, ...updates, updatedAt: new Date() };
+    await tx.store.put(updatedItem);
+  }
+  await tx.done;
+  return itemsToUpdate.length;
+}
+
+export async function deleteTableItemsByQuery(tableName, query) {
+  const db = await dbPromise;
+  const itemsToDelete = await getFilteredItems(tableName, query);
+
+  const tx = db.transaction('tables', 'readwrite');
+  for (const item of itemsToDelete) {
+    await tx.store.delete(item.id);
+  }
+  await tx.done;
+  return itemsToDelete.length;
 }
