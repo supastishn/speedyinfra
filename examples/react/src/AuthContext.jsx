@@ -37,6 +37,54 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('userProfile')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const projectName = "example_project";
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncPendingOperations = async () => {
+    if (isSyncing || !navigator.onLine || !token) return;
+    setIsSyncing(true);
+
+    try {
+      const pendingOperations = await offlineDB.getSyncQueue();
+      for (const op of pendingOperations) {
+        try {
+          let response;
+          switch (op.type) {
+            case 'updateUser':
+              response = await apiClient('PUT', '/rest/v1/users/update', token, projectName, op.payload);
+              break;
+            case 'deleteUser':
+              response = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
+              break;
+            case 'uploadFiles': {
+              const formData = new FormData();
+              formData.append('files', op.payload);
+              response = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
+              break;
+            }
+            case 'deleteFile':
+              response = await apiClient('DELETE', `/rest/v1/storage/files/${op.payload.filename}`, token, projectName);
+              break;
+            case 'fetchTableData':
+              response = await apiClient(op.payload.method, `/rest/v1/tables/${op.payload.table}${op.payload.endpoint}`, token, projectName, op.payload.body);
+              break;
+            default:
+              console.warn(`Unknown sync operation type: ${op.type}`);
+          }
+
+          if (response && response.ok) {
+            await offlineDB.removeSyncQueueItem(op.id);
+          } else {
+            const errorBody = response ? await response.json().catch(() => response.text()) : 'No response';
+            console.error('Failed to sync operation:', op, errorBody);
+          }
+        } catch (err) {
+          console.error('Error during sync of operation:', op, err);
+        }
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const login = async (email, password) => {
     try {
@@ -112,7 +160,12 @@ export function AuthProvider({ children }) {
 
   const updateUser = async (updates) => {
     if (!navigator.onLine) {
-      throw new Error('This action is not available offline.');
+      await offlineDB.addSyncQueue({ type: 'updateUser', payload: updates });
+      // Optimistic UI update
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('userProfile', JSON.stringify(updatedUser));
+      return;
     }
     const res = await apiClient('PUT', '/rest/v1/users/update', token, projectName, updates);
     if (!res.ok) {
@@ -124,7 +177,9 @@ export function AuthProvider({ children }) {
 
   const deleteUser = async () => {
     if (!navigator.onLine) {
-      throw new Error('This action is not available offline.');
+      await offlineDB.addSyncQueue({ type: 'deleteUser' });
+      logout(); // Optimistic logout
+      return;
     }
     const res = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
     if (!res.ok) {
@@ -136,7 +191,12 @@ export function AuthProvider({ children }) {
 
   const uploadFiles = async (formData) => {
     if (!navigator.onLine) {
-      throw new Error('This action is not available offline.');
+      const file = formData.get('files');
+      if (file) {
+        await offlineDB.addSyncQueue({ type: 'uploadFiles', payload: file });
+        return { message: 'File queued for upload when back online.' };
+      }
+      throw new Error('No file to upload');
     }
     const res = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
     if (!res.ok) throw new Error('Upload failed');
@@ -186,12 +246,18 @@ export function AuthProvider({ children }) {
   };
 
   const deleteFile = async (filename) => {
-    if (!navigator.onLine) {
-      throw new Error('This action is not available offline.');
-    }
-    const res = await apiClient('DELETE', `/rest/v1/storage/files/${filename}`, token, projectName);
-    if (!res.ok) throw new Error('Delete failed');
+    // Optimistic update
     await offlineDB.removeOfflineFileFromCache(filename);
+
+    if (!navigator.onLine) {
+      await offlineDB.addSyncQueue({ type: 'deleteFile', payload: { filename } });
+      return { message: 'File deletion queued.' };
+    }
+
+    const res = await apiClient('DELETE', `/rest/v1/storage/files/${filename}`, token, projectName);
+    if (!res.ok) {
+      throw new Error('Delete failed');
+    }
     return await res.json();
   };
 
@@ -205,7 +271,8 @@ export function AuthProvider({ children }) {
 
   const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
     if (method !== 'GET' && !navigator.onLine) {
-      throw new Error('This action is not available offline.');
+      await offlineDB.addSyncQueue({ type: 'fetchTableData', payload: { table, endpoint, method, body } });
+      return { message: 'Action queued and will be synced when online.' };
     }
     try {
       const response = await apiClient(
@@ -261,6 +328,19 @@ export function AuthProvider({ children }) {
       fetchUserProfile(token);
     }
   }, [token]);
+
+  useEffect(() => {
+    const handleOnline = () => syncPendingOperations();
+    window.addEventListener('online', handleOnline);
+
+    if (token && navigator.onLine) {
+      syncPendingOperations();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [token, isSyncing]);
 
   return (
     <AuthContext.Provider value={{ 

@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'speedyinfra-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
@@ -15,6 +15,9 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
     }
     if (!db.objectStoreNames.contains('file-blobs')) {
       db.createObjectStore('file-blobs', { keyPath: 'filename' });
+    }
+    if (!db.objectStoreNames.contains('sync-queue')) {
+      db.createObjectStore('sync-queue', { keyPath: 'id', autoIncrement: true });
     }
   },
 });
@@ -93,4 +96,19 @@ export async function removeOfflineFileFromCache(filename) {
   await tx.objectStore('files').delete(filename);
   await tx.objectStore('file-blobs').delete(filename);
   await tx.done;
+}
+
+export async function addSyncQueue(operation) {
+  const db = await dbPromise;
+  await db.add('sync-queue', operation);
+}
+
+export async function getSyncQueue() {
+  const db = await dbPromise;
+  return db.getAll('sync-queue');
+}
+
+export async function removeSyncQueueItem(id) {
+  const db = await dbPromise;
+  await db.delete('sync-queue', id);
 }
