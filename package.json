@@ -8,6 +8,12 @@
     "format": "prettier --write .",
     "start": "nodemon app.js"
   },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/examples/"
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
