@@ -1,6 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import * as offlineDB from './offlineDB';
-import bcrypt from 'bcryptjs';
 
 const AuthContext = createContext(null);
 
@@ -61,7 +60,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('API login failed, attempting offline.', err);
       const user = await offlineDB.getUserByEmail(email);
-      if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      if (user && user.password === password) {
         const mockToken = `offline-token-${user._id}-${Date.now()}`;
         localStorage.setItem('token', mockToken);
         setToken(mockToken);
@@ -85,8 +84,7 @@ export function AuthProvider({ children }) {
       );
       if (res.ok) {
         const newUser = await res.json();
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await offlineDB.addUser({ ...newUser, password: hashedPassword });
+        await offlineDB.addUser({ ...newUser, password });
         await login(email, password);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
@@ -98,8 +96,7 @@ export function AuthProvider({ children }) {
       if (existingUser) {
         throw new Error('User already exists offline.');
       }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = await offlineDB.addUser({ email, password: hashedPassword, role: 'user' });
+      const newUser = await offlineDB.addUser({ email, password, role: 'user' });
       const mockToken = `offline-token-${newUser._id}-${Date.now()}`;
       localStorage.setItem('token', mockToken);
       setToken(mockToken);
@@ -170,11 +167,7 @@ export function AuthProvider({ children }) {
       await fetchUserProfile(token);
     } catch (err) {
       console.warn("Couldn't update user online, updating offline.", err);
-      const offlineUpdates = { ...updates };
-      if (offlineUpdates.password) {
-        offlineUpdates.password = await bcrypt.hash(offlineUpdates.password, 10);
-      }
-      await offlineDB.updateUserById(user._id, offlineUpdates);
+      await offlineDB.updateUserById(user._id, updates);
     }
   };
 
