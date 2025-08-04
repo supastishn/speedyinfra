@@ -4,12 +4,18 @@ import { useAuth } from './AuthContext'
 export default function AuthForm({ formType }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const { login, register } = useAuth()
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault()
-    const handler = formType === 'login' ? login : register
-    handler(email, password)
+    setError('');
+    try {
+      const handler = formType === 'login' ? login : register
+      await handler(email, password)
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   return (
@@ -17,6 +23,7 @@ export default function AuthForm({ formType }) {
       <h3 className="card-header">
         {formType === 'login' ? 'Login' : 'Create Account'}
       </h3>
+      {error && <div className="error-display">{error}</div>}
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="input-group">
           <label className="input-label">Email</label>

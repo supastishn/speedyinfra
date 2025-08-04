@@ -39,31 +39,51 @@ export function AuthProvider({ children }) {
   const projectName = "example_project";
 
   const login = async (email, password) => {
-    const res = await apiClient(
-      'POST',
-      '/rest/v1/auth/login',
-      null,
-      projectName,
-      { email, password }
-    );
-    if (res.ok) {
-      const { token } = await res.json();
-      localStorage.setItem('token', token);
-      setToken(token);
-      await fetchUserProfile(token);
+    try {
+      const res = await apiClient(
+        'POST',
+        '/rest/v1/auth/login',
+        null,
+        projectName,
+        { email, password }
+      );
+      if (res.ok) {
+        const { token } = await res.json();
+        localStorage.setItem('token', token);
+        setToken(token);
+        await fetchUserProfile(token);
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Login failed.' }));
+        throw new Error(errorData.error || 'Invalid credentials');
+      }
+    } catch (err) {
+      if (!navigator.onLine) {
+        throw new Error('Cannot log in while offline. Please check your network connection.');
+      }
+      throw err;
     }
   };
 
   const register = async (email, password) => {
-    const res = await apiClient(
-      'POST',
-      '/rest/v1/auth/register',
-      null,
-      projectName,
-      { email, password }
-    );
-    if (res.ok) {
-      await login(email, password);
+    try {
+      const res = await apiClient(
+        'POST',
+        '/rest/v1/auth/register',
+        null,
+        projectName,
+        { email, password }
+      );
+      if (res.ok) {
+        await login(email, password);
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
+        throw new Error(errorData.error || 'Registration failed');
+      }
+    } catch (err) {
+      if (!navigator.onLine) {
+        throw new Error('Cannot register while offline. Please check your network connection.');
+      }
+      throw err;
     }
   };
 
@@ -91,16 +111,22 @@ export function AuthProvider({ children }) {
       throw new Error('This action is not available offline.');
     }
     const res = await apiClient('PUT', '/rest/v1/users/update', token, projectName, updates);
-    if (res.ok) {
-      fetchUserProfile(token);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Update failed' }));
+      throw new Error(errorData.error || 'Update failed');
     }
+    await fetchUserProfile(token);
   };
 
   const deleteUser = async () => {
     if (!navigator.onLine) {
       throw new Error('This action is not available offline.');
     }
-    await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
+    const res = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Delete failed' }));
+      throw new Error(errorData.error || 'Delete failed');
+    }
     logout();
   };
 
