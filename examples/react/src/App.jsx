@@ -10,7 +10,11 @@ import './App.css';
 import ErrorBoundary from './ErrorBoundary';
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>

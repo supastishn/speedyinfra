@@ -37,6 +37,7 @@ const downloadApiClient = async (endpoint, token, projectName) =>
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('userProfile')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [loading, setLoading] = useState(true);
   const projectName = "example_project";
 
   const login = async (email, password) => {
@@ -113,8 +114,9 @@ export function AuthProvider({ children }) {
       const userId = token.split('-')[2];
       const userProfile = await offlineDB.getUserById(userId);
       if (userProfile) {
-        setUser(userProfile);
-        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        const { password: _, ...safeUser } = userProfile;
+        setUser(safeUser);
+        localStorage.setItem('userProfile', JSON.stringify(safeUser));
       } else {
         logout();
       }
@@ -364,16 +366,21 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchUserProfile(token);
-    }
-  }, [token]);
+    const initAuth = async () => {
+      if (token) {
+        await fetchUserProfile(token);
+      }
+      setLoading(false);
+    };
+    initAuth();
+  }, []);
 
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       token, 
+      loading,
       projectName,
       login, 
       register, 

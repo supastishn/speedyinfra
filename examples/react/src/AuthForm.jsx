@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext'
 
 export default function AuthForm({ formType }) {
@@ -6,6 +7,7 @@ export default function AuthForm({ formType }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { login, register } = useAuth()
+  const navigate = useNavigate();
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -13,6 +15,7 @@ export default function AuthForm({ formType }) {
     try {
       const handler = formType === 'login' ? login : register
       await handler(email, password)
+      navigate('/app');
     } catch (err) {
       setError(err.message)
     }
