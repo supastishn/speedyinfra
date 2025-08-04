@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import * as offlineDB from './offlineDB';
+import bcrypt from 'bcryptjs';
 
 const AuthContext = createContext(null);
 
@@ -59,13 +60,13 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('API login failed, attempting offline.', err);
       const user = await offlineDB.getUserByEmail(email);
-      // NOTE: Plaintext password check for offline mode. Not for production.
-      if (user && user.password === password) {
+      if (user && user.password && (await bcrypt.compare(password, user.password))) {
         const mockToken = `offline-token-${user._id}-${Date.now()}`;
         localStorage.setItem('token', mockToken);
         setToken(mockToken);
-        setUser(user);
-        localStorage.setItem('userProfile', JSON.stringify(user));
+        const { password: _, ...safeUser } = user;
+        setUser(safeUser);
+        localStorage.setItem('userProfile', JSON.stringify(safeUser));
         return;
       }
       throw new Error('Offline login failed. Check credentials or network.');
@@ -83,7 +84,8 @@ export function AuthProvider({ children }) {
       );
       if (res.ok) {
         const newUser = await res.json();
-        await offlineDB.addUser({ ...newUser, password }); // Cache with password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await offlineDB.addUser({ ...newUser, password: hashedPassword });
         await login(email, password);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
@@ -95,13 +97,14 @@ export function AuthProvider({ children }) {
       if (existingUser) {
         throw new Error('User already exists offline.');
       }
-      // NOTE: Plaintext password. Not for production.
-      const newUser = await offlineDB.addUser({ email, password, role: 'user' });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = await offlineDB.addUser({ email, password: hashedPassword, role: 'user' });
       const mockToken = `offline-token-${newUser._id}-${Date.now()}`;
       localStorage.setItem('token', mockToken);
       setToken(mockToken);
-      setUser(newUser);
-      localStorage.setItem('userProfile', JSON.stringify(newUser));
+      const { password: _, ...safeUser } = newUser;
+      setUser(safeUser);
+      localStorage.setItem('userProfile', JSON.stringify(safeUser));
     }
   };
 
@@ -150,7 +153,8 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = async (updates) => {
-    const updatedUser = { ...user, ...updates };
+    const { password, ...safeUpdates } = updates;
+    const updatedUser = { ...user, ...safeUpdates };
     setUser(updatedUser);
     localStorage.setItem('userProfile', JSON.stringify(updatedUser));
     
@@ -164,7 +168,11 @@ export function AuthProvider({ children }) {
       await fetchUserProfile(token);
     } catch (err) {
       console.warn("Couldn't update user online, updating offline.", err);
-      await offlineDB.updateUserById(user._id, updates);
+      const offlineUpdates = { ...updates };
+      if (offlineUpdates.password) {
+        offlineUpdates.password = await bcrypt.hash(offlineUpdates.password, 10);
+      }
+      await offlineDB.updateUserById(user._id, offlineUpdates);
     }
   };
 
