@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext'
 
@@ -6,8 +6,14 @@ export default function AuthForm({ formType }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { login, register } = useAuth()
+  const { login, register, user } = useAuth()
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/app', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -15,7 +21,6 @@ export default function AuthForm({ formType }) {
     try {
       const handler = formType === 'login' ? login : register
       await handler(email, password)
-      navigate('/app');
     } catch (err) {
       setError(err.message)
     }
