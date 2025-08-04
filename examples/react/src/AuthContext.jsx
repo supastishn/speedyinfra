@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import * as offlineDB from './offlineDB';
 
 const AuthContext = createContext(null);
 
@@ -33,7 +34,7 @@ const downloadApiClient = async (endpoint, token, projectName) =>
   });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('userProfile')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const projectName = "example_project";
 
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
       const { token } = await res.json();
       localStorage.setItem('token', token);
       setToken(token);
-      fetchUserProfile(token);
+      await fetchUserProfile(token);
     }
   };
 
@@ -67,110 +68,122 @@ export function AuthProvider({ children }) {
   };
 
   const fetchUserProfile = async (token) => {
-    const res = await apiClient(
-      'GET',
-      '/rest/v1/users/profile',
-      token,
-      projectName
-    );
-    if (res.status === 401) {
-      logout();
-      return;
-    }
-    if (res.ok) {
-      setUser(await res.json());
+    try {
+      const res = await apiClient('GET', '/rest/v1/users/profile', token, projectName);
+      if (res.status === 401) {
+        logout();
+        return;
+      }
+      if (res.ok) {
+        const userProfile = await res.json();
+        setUser(userProfile);
+        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+      } else {
+        throw new Error('Failed to fetch user profile');
+      }
+    } catch (err) {
+      console.warn('Could not fetch user profile, using offline version.', err);
     }
   };
 
   const updateUser = async (updates) => {
-    const res = await apiClient(
-      'PUT',
-      '/rest/v1/users/update',
-      token,
-      projectName,
-      updates
-    );
+    if (!navigator.onLine) {
+      throw new Error('This action is not available offline.');
+    }
+    const res = await apiClient('PUT', '/rest/v1/users/update', token, projectName, updates);
     if (res.ok) {
       fetchUserProfile(token);
     }
   };
 
   const deleteUser = async () => {
-    await apiClient(
-      'DELETE',
-      '/rest/v1/users/delete',
-      token,
-      projectName
-    );
+    if (!navigator.onLine) {
+      throw new Error('This action is not available offline.');
+    }
+    await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
     logout();
   };
 
   const uploadFiles = async (formData) => {
-      const res = await uploadApiClient(
-        '/rest/v1/storage/upload',
-        token,
-        projectName,
-        formData
-      );
-      if (!res.ok) throw new Error('Upload failed');
-      return await res.json();
+    if (!navigator.onLine) {
+      throw new Error('This action is not available offline.');
+    }
+    const res = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
+    if (!res.ok) throw new Error('Upload failed');
+    return await res.json();
   };
 
   const listFiles = async () => {
-      const res = await apiClient(
-        'GET',
-        '/rest/v1/storage/files',
-        token,
-        projectName
-      );
+    try {
+      const res = await apiClient('GET', '/rest/v1/storage/files', token, projectName);
       if (!res.ok) throw new Error('Could not list files');
-      return await res.json();
+      const fileList = await res.json();
+      await offlineDB.setOfflineFilesCache(projectName, fileList);
+      return fileList;
+    } catch (err) {
+      console.warn('Could not list files, using offline cache.', err);
+      return await offlineDB.getOfflineFilesCache(projectName);
+    }
   };
 
   const downloadFile = async (filename) => {
+    let blob;
+    try {
       const res = await downloadApiClient(
         `/rest/v1/storage/files/${filename}`,
         token,
-        projectName
+        projectName,
       );
       if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      blob = await res.blob();
+      await offlineDB.setOfflineFileBlob(filename, blob);
+    } catch (err) {
+      console.warn('Could not download file, trying offline cache.', err);
+      blob = await offlineDB.getOfflineFileBlob(filename);
+      if (!blob) {
+        throw new Error('File not available offline.');
+      }
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   const deleteFile = async (filename) => {
-      const res = await apiClient(
-        'DELETE',
-        `/rest/v1/storage/files/${filename}`,
-        token,
-        projectName
-      );
-      if (!res.ok) throw new Error('Delete failed');
-      return await res.json();
+    if (!navigator.onLine) {
+      throw new Error('This action is not available offline.');
+    }
+    const res = await apiClient('DELETE', `/rest/v1/storage/files/${filename}`, token, projectName);
+    if (!res.ok) throw new Error('Delete failed');
+    await offlineDB.removeOfflineFileFromCache(filename);
+    return await res.json();
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userProfile');
     setToken(null);
     setUser(null);
     window.location.href = '/login';
   };
 
   const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
+    if (method !== 'GET' && !navigator.onLine) {
+      throw new Error('This action is not available offline.');
+    }
     try {
       const response = await apiClient(
         method,
         `/rest/v1/tables/${table}${endpoint}`,
         token,
         projectName,
-        body
+        body,
       );
 
       if (!response.ok) {
@@ -181,13 +194,34 @@ export function AuthProvider({ children }) {
       const totalCount = response.headers.get('X-Total-Count');
       const data = await response.json();
 
+      if (method === 'GET') {
+        if (Array.isArray(data)) {
+          await offlineDB.setOfflineTableCache(table, data);
+        } else if (typeof data === 'object' && data !== null && data._id) {
+          await offlineDB.setOfflineTableItemCache(table, data);
+        }
+      }
+
       if (totalCount !== null) {
         return { data, totalCount: parseInt(totalCount, 10) };
       }
 
       return data;
     } catch (error) {
-      console.error('Table operation error:', error);
+      console.error('Table operation error, trying offline cache:', error);
+      if (method === 'GET') {
+        const isById = endpoint.startsWith('/') && endpoint.length > 1 && !endpoint.includes('?');
+        if (isById) {
+          const docId = endpoint.substring(1);
+          const data = await offlineDB.getOfflineTableItemCache(table, docId);
+          if (!data) throw new Error('Item not found in offline cache.');
+          return data;
+        } else {
+          const data = await offlineDB.getOfflineTableCache(table);
+          // NOTE: Offline mode does not support filtering, pagination, or sorting.
+          return { data, totalCount: data.length };
+        }
+      }
       throw error;
     }
   };
