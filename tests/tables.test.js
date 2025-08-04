@@ -141,3 +141,62 @@ describe('Table CRUD API', () => {
     expect(fs.existsSync(folderPath)).toBe(true);
   });
 });
+
+describe('Table CRUD API by ID', () => {
+  let docId;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post(`/rest/v1/tables/${TEST_TABLE}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ name: 'Item For ID Test', value: 123 });
+    docId = res.body._id;
+  });
+
+  test('Read document by ID', async () => {
+    const res = await request(app)
+      .get(`/rest/v1/tables/${TEST_TABLE}/${docId}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`);
+    
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('name', 'Item For ID Test');
+  });
+
+  test('Update document by ID', async () => {
+    const res = await request(app)
+      .put(`/rest/v1/tables/${TEST_TABLE}/${docId}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ name: 'Updated Item', value: 456 });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('modified', 1);
+
+    const verifyRes = await request(app)
+      .get(`/rest/v1/tables/${TEST_TABLE}/${docId}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`);
+    
+    expect(verifyRes.body.value).toBe(456);
+    expect(verifyRes.body.name).toBe('Updated Item');
+  });
+
+  test('Delete document by ID', async () => {
+    const res = await request(app)
+      .delete(`/rest/v1/tables/${TEST_TABLE}/${docId}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`);
+    
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('deleted', 1);
+
+    const verifyRes = await request(app)
+      .get(`/rest/v1/tables/${TEST_TABLE}/${docId}`)
+      .set('X-Project-Name', TEST_PROJECT)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(verifyRes.statusCode).toBe(404);
+  });
+});
