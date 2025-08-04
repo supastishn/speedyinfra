@@ -292,6 +292,14 @@ export function AuthProvider({ children }) {
     window.location.href = '/login';
   };
 
+  const resetAllData = async () => {
+    await offlineDB.clearAllData();
+    localStorage.removeItem('token');
+    localStorage.removeItem('userProfile');
+    alert('All local data has been reset. The page will now reload.');
+    window.location.reload();
+  };
+
   const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
     try {
       if (token && token.startsWith('offline-token')) throw new Error('offline');
@@ -391,7 +399,8 @@ export function AuthProvider({ children }) {
       uploadFiles,
       listFiles,
       downloadFile,
-      deleteFile
+      deleteFile,
+      resetAllData
     }}>
       {children}
     </AuthContext.Provider>

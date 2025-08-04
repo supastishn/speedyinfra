@@ -192,3 +192,13 @@ export async function queryTable(tableName, query) {
   }
   return items;
 }
+
+export async function clearAllData() {
+  const db = await dbPromise;
+  await Promise.all([
+    db.clear('tables'),
+    db.clear('files'),
+    db.clear('file-blobs'),
+    db.clear('_users'),
+  ]);
+}
