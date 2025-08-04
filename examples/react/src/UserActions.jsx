@@ -43,6 +43,7 @@ export default function UserActions() {
       <div className="card">
         <h3>Update Email</h3>
         <input
+          className="styled-input"
           type="email"
           placeholder="New email"
           value={newEmail}
@@ -53,6 +54,7 @@ export default function UserActions() {
       <div className="card">
         <h3>Update Password</h3>
         <input
+          className="styled-input"
           type="password"
           placeholder="New password"
           value={newPassword}

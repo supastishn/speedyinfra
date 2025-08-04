@@ -64,7 +64,7 @@ export default function StorageManager() {
 
       <div className="card">
         <h3>Upload File</h3>
-        <input id="file-input" type="file" onChange={handleFileChange} />
+        <input id="file-input" type="file" onChange={handleFileChange} className="styled-input" />
         <button onClick={handleUpload} disabled={!selectedFile} className="primary-btn">
           Upload
         </button>
