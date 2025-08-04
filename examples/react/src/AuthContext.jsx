@@ -103,6 +103,10 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.warn('Could not fetch user profile, using offline version.', err);
+      // If we can't fetch a profile and don't have one cached, we should log out.
+      if (!localStorage.getItem('userProfile')) {
+        logout();
+      }
     }
   };
 
