@@ -39,14 +39,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const projectName = "example_project";
 
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = false) => {
     try {
       const res = await apiClient(
         'POST',
         '/rest/v1/auth/login',
         null,
         projectName,
-        { email, password }
+        { email, password, rememberMe }
       );
       if (res.ok) {
         const { token } = await res.json();
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (email, password) => {
+  const register = async (email, password, rememberMe = false) => {
     try {
       const res = await apiClient(
         'POST',
@@ -85,7 +85,7 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const newUser = await res.json();
         await offlineDB.addUser({ ...newUser, password });
-        await login(email, password);
+        await login(email, password, rememberMe);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
         throw new Error(errorData.error || 'Registration failed');

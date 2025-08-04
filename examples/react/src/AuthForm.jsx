@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext'
 export default function AuthForm({ formType }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('')
   const { login, register, user } = useAuth()
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function AuthForm({ formType }) {
     setError('');
     try {
       const handler = formType === 'login' ? login : register
-      await handler(email, password)
+      await handler(email, password, rememberMe)
     } catch (err) {
       setError(err.message)
     }
@@ -53,6 +54,17 @@ export default function AuthForm({ formType }) {
             minLength="6"
             required
           />
+        </div>
+        <div style={{ textAlign: 'left' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{ marginRight: '0.5rem' }}
+            />
+            Remember me
+          </label>
         </div>
         <button 
           className="primary-btn" 

@@ -9,6 +9,7 @@ const registerSchema = Joi.object({
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
+  rememberMe: Joi.boolean(),
 });
 
 const updateUserSchema = Joi.object({
