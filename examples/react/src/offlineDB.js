@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'speedyinfra-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
@@ -16,8 +16,12 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
     if (!db.objectStoreNames.contains('file-blobs')) {
       db.createObjectStore('file-blobs', { keyPath: 'filename' });
     }
-    if (!db.objectStoreNames.contains('sync-queue')) {
-      db.createObjectStore('sync-queue', { keyPath: 'id', autoIncrement: true });
+    if (db.objectStoreNames.contains('sync-queue')) {
+      db.deleteObjectStore('sync-queue');
+    }
+    if (!db.objectStoreNames.contains('_users')) {
+      const userStore = db.createObjectStore('_users', { keyPath: '_id' });
+      userStore.createIndex('by_email', 'email', { unique: true });
     }
   },
 });
@@ -98,17 +102,93 @@ export async function removeOfflineFileFromCache(filename) {
   await tx.done;
 }
 
-export async function addSyncQueue(operation) {
-  const db = await dbPromise;
-  await db.add('sync-queue', operation);
+function generateId() {
+  if (crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-export async function getSyncQueue() {
+export async function addUser(user) {
   const db = await dbPromise;
-  return db.getAll('sync-queue');
+  // NOTE: This is a mock user record for offline. `_id` should ideally be consistent with backend.
+  const userWithId = { ...user, _id: user._id || generateId() };
+  await db.put('_users', userWithId);
+  return userWithId;
 }
 
-export async function removeSyncQueueItem(id) {
+export async function getUserByEmail(email) {
   const db = await dbPromise;
-  await db.delete('sync-queue', id);
+  return db.getFromIndex('_users', 'by_email', email);
+}
+
+export async function getUserById(id) {
+  const db = await dbPromise;
+  return db.get('_users', id);
+}
+
+export async function updateUserById(id, updates) {
+  const db = await dbPromise;
+  const user = await db.get('_users', id);
+  if (user) {
+    // Exclude password from updates unless explicitly provided
+    const { password, ...restOfUpdates } = updates;
+    const updatedUser = { ...user, ...restOfUpdates, updatedAt: new Date() };
+    if (password) {
+      updatedUser.password = password;
+    }
+    await db.put('_users', updatedUser);
+    return updatedUser;
+  }
+  return null;
+}
+
+export async function deleteUserById(id) {
+  const db = await dbPromise;
+  await db.delete('_users', id);
+}
+
+
+// Table functions for offline mutations
+export async function addTableItem(tableName, item) {
+  const db = await dbPromise;
+  const newItem = { ...item, _id: generateId(), createdAt: new Date() };
+  await db.put('tables', { ...newItem, tableName, id: `${tableName}-${newItem._id}` });
+  return newItem;
+}
+
+export async function updateTableItem(tableName, id, item) {
+  const db = await dbPromise;
+  const existing = await db.get('tables', `${tableName}-${id}`);
+  if (existing) {
+    const updatedItem = { ...existing, ...item, updatedAt: new Date() };
+    await db.put('tables', updatedItem);
+    return 1;
+  }
+  return 0;
+}
+
+export async function deleteTableItem(tableName, id) {
+  const db = await dbPromise;
+  const key = `${tableName}-${id}`;
+  if (await db.get('tables', key)) {
+    await db.delete('tables', key);
+    return 1;
+  }
+  return 0;
+}
+
+export async function queryTable(tableName, query) {
+  const db = await dbPromise;
+  let items = await db.getAllFromIndex('tables', 'by_table', tableName);
+
+  if (query && Object.keys(query).length > 0) {
+    items = items.filter(item => {
+      return Object.entries(query).every(([key, value]) => {
+        if (key.startsWith('_')) return true;
+        return String(item[key]) === String(value);
+      });
+    });
+  }
+  return items;
 }

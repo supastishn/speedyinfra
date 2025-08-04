@@ -37,54 +37,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('userProfile')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const projectName = "example_project";
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const syncPendingOperations = async () => {
-    if (isSyncing || !navigator.onLine || !token) return;
-    setIsSyncing(true);
-
-    try {
-      const pendingOperations = await offlineDB.getSyncQueue();
-      for (const op of pendingOperations) {
-        try {
-          let response;
-          switch (op.type) {
-            case 'updateUser':
-              response = await apiClient('PUT', '/rest/v1/users/update', token, projectName, op.payload);
-              break;
-            case 'deleteUser':
-              response = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
-              break;
-            case 'uploadFiles': {
-              const formData = new FormData();
-              formData.append('files', op.payload);
-              response = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
-              break;
-            }
-            case 'deleteFile':
-              response = await apiClient('DELETE', `/rest/v1/storage/files/${op.payload.filename}`, token, projectName);
-              break;
-            case 'fetchTableData':
-              response = await apiClient(op.payload.method, `/rest/v1/tables/${op.payload.table}${op.payload.endpoint}`, token, projectName, op.payload.body);
-              break;
-            default:
-              console.warn(`Unknown sync operation type: ${op.type}`);
-          }
-
-          if (response && response.ok) {
-            await offlineDB.removeSyncQueueItem(op.id);
-          } else {
-            const errorBody = response ? await response.json().catch(() => response.text()) : 'No response';
-            console.error('Failed to sync operation:', op, errorBody);
-          }
-        } catch (err) {
-          console.error('Error during sync of operation:', op, err);
-        }
-      }
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const login = async (email, password) => {
     try {
@@ -105,10 +57,18 @@ export function AuthProvider({ children }) {
         throw new Error(errorData.error || 'Invalid credentials');
       }
     } catch (err) {
-      if (!navigator.onLine) {
-        throw new Error('Cannot log in while offline. Please check your network connection.');
+      console.warn('API login failed, attempting offline.', err);
+      const user = await offlineDB.getUserByEmail(email);
+      // NOTE: Plaintext password check for offline mode. Not for production.
+      if (user && user.password === password) {
+        const mockToken = `offline-token-${user._id}-${Date.now()}`;
+        localStorage.setItem('token', mockToken);
+        setToken(mockToken);
+        setUser(user);
+        localStorage.setItem('userProfile', JSON.stringify(user));
+        return;
       }
-      throw err;
+      throw new Error('Offline login failed. Check credentials or network.');
     }
   };
 
@@ -122,20 +82,42 @@ export function AuthProvider({ children }) {
         { email, password }
       );
       if (res.ok) {
+        const newUser = await res.json();
+        await offlineDB.addUser({ ...newUser, password }); // Cache with password
         await login(email, password);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
         throw new Error(errorData.error || 'Registration failed');
       }
     } catch (err) {
-      if (!navigator.onLine) {
-        throw new Error('Cannot register while offline. Please check your network connection.');
+      console.warn('API register failed, attempting offline.', err);
+      const existingUser = await offlineDB.getUserByEmail(email);
+      if (existingUser) {
+        throw new Error('User already exists offline.');
       }
-      throw err;
+      // NOTE: Plaintext password. Not for production.
+      const newUser = await offlineDB.addUser({ email, password, role: 'user' });
+      const mockToken = `offline-token-${newUser._id}-${Date.now()}`;
+      localStorage.setItem('token', mockToken);
+      setToken(mockToken);
+      setUser(newUser);
+      localStorage.setItem('userProfile', JSON.stringify(newUser));
     }
   };
 
   const fetchUserProfile = async (token) => {
+    if (token.startsWith('offline-token')) {
+      const userId = token.split('-')[2];
+      const userProfile = await offlineDB.getUserById(userId);
+      if (userProfile) {
+        setUser(userProfile);
+        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+      } else {
+        logout();
+      }
+      return;
+    }
+
     try {
       const res = await apiClient('GET', '/rest/v1/users/profile', token, projectName);
       if (res.status === 401) {
@@ -146,12 +128,21 @@ export function AuthProvider({ children }) {
         const userProfile = await res.json();
         setUser(userProfile);
         localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        
+        // Update offline user record without touching password if not present
+        const offlineUser = await offlineDB.getUserById(userProfile._id);
+        if (offlineUser) {
+          await offlineDB.updateUserById(userProfile._id, userProfile);
+        } else {
+          // This user was not registered on this device, so they can't log in offline
+          await offlineDB.addUser(userProfile);
+        }
+
       } else {
         throw new Error('Failed to fetch user profile');
       }
     } catch (err) {
       console.warn('Could not fetch user profile, using offline version.', err);
-      // If we can't fetch a profile and don't have one cached, we should log out.
       if (!localStorage.getItem('userProfile')) {
         logout();
       }
@@ -159,48 +150,69 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = async (updates) => {
-    if (!navigator.onLine) {
-      await offlineDB.addSyncQueue({ type: 'updateUser', payload: updates });
-      // Optimistic UI update
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem('userProfile', JSON.stringify(updatedUser));
-      return;
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('userProfile', JSON.stringify(updatedUser));
+    
+    try {
+      if (token.startsWith('offline-token')) throw new Error("Offline mode");
+      const res = await apiClient('PUT', '/rest/v1/users/update', token, projectName, updates);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Update failed' }));
+        throw new Error(errorData.error || 'Update failed');
+      }
+      await fetchUserProfile(token);
+    } catch (err) {
+      console.warn("Couldn't update user online, updating offline.", err);
+      await offlineDB.updateUserById(user._id, updates);
     }
-    const res = await apiClient('PUT', '/rest/v1/users/update', token, projectName, updates);
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({ error: 'Update failed' }));
-      throw new Error(errorData.error || 'Update failed');
-    }
-    await fetchUserProfile(token);
   };
 
   const deleteUser = async () => {
-    if (!navigator.onLine) {
-      await offlineDB.addSyncQueue({ type: 'deleteUser' });
-      logout(); // Optimistic logout
-      return;
+    try {
+      if (token.startsWith('offline-token')) throw new Error("Offline mode");
+      const res = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Delete failed' }));
+        throw new Error(errorData.error || 'Delete failed');
+      }
+      await offlineDB.deleteUserById(user._id);
+      logout();
+    } catch (err) {
+      console.warn("Couldn't delete user online, deleting offline.", err);
+      await offlineDB.deleteUserById(user._id);
+      logout();
     }
-    const res = await apiClient('DELETE', '/rest/v1/users/delete', token, projectName);
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({ error: 'Delete failed' }));
-      throw new Error(errorData.error || 'Delete failed');
-    }
-    logout();
   };
 
   const uploadFiles = async (formData) => {
-    if (!navigator.onLine) {
-      const file = formData.get('files');
-      if (file) {
-        await offlineDB.addSyncQueue({ type: 'uploadFiles', payload: file });
-        return { message: 'File queued for upload when back online.' };
-      }
+    const file = formData.get('files');
+    if (!file) {
       throw new Error('No file to upload');
     }
-    const res = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
-    if (!res.ok) throw new Error('Upload failed');
-    return await res.json();
+
+    try {
+      if (token.startsWith('offline-token')) throw new Error('offline');
+      const res = await uploadApiClient('/rest/v1/storage/upload', token, projectName, formData);
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      const serverFilename = data.files[0].filename;
+      await offlineDB.setOfflineFileBlob(serverFilename, file);
+      let existingFiles = await offlineDB.getOfflineFilesCache(projectName);
+      if (!existingFiles.includes(serverFilename)) {
+        await offlineDB.setOfflineFilesCache(projectName, [...existingFiles, serverFilename]);
+      }
+      return data;
+    } catch (err) {
+      console.warn('Online upload failed, saving to offline DB.', err);
+      await offlineDB.setOfflineFileBlob(file.name, file);
+      let existingFiles = await offlineDB.getOfflineFilesCache(projectName);
+      if (!existingFiles.includes(file.name)) {
+        await offlineDB.setOfflineFilesCache(projectName, [...existingFiles, file.name]);
+      }
+      return { message: 'File saved for offline use.' };
+    }
   };
 
   const listFiles = async () => {
@@ -249,16 +261,17 @@ export function AuthProvider({ children }) {
     // Optimistic update
     await offlineDB.removeOfflineFileFromCache(filename);
 
-    if (!navigator.onLine) {
-      await offlineDB.addSyncQueue({ type: 'deleteFile', payload: { filename } });
-      return { message: 'File deletion queued.' };
+    try {
+      if (token.startsWith('offline-token')) throw new Error('offline');
+      const res = await apiClient('DELETE', `/rest/v1/storage/files/${filename}`, token, projectName);
+      if (!res.ok) {
+        throw new Error('Delete failed');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('Online delete failed, deleted from offline DB.', err);
+      return { message: 'File deleted from offline storage.' };
     }
-
-    const res = await apiClient('DELETE', `/rest/v1/storage/files/${filename}`, token, projectName);
-    if (!res.ok) {
-      throw new Error('Delete failed');
-    }
-    return await res.json();
   };
 
   const logout = () => {
@@ -270,11 +283,9 @@ export function AuthProvider({ children }) {
   };
 
   const fetchTableData = async (table, endpoint = '', method = 'GET', body = null) => {
-    if (method !== 'GET' && !navigator.onLine) {
-      await offlineDB.addSyncQueue({ type: 'fetchTableData', payload: { table, endpoint, method, body } });
-      return { message: 'Action queued and will be synced when online.' };
-    }
     try {
+      if (token && token.startsWith('offline-token')) throw new Error('offline');
+
       const response = await apiClient(
         method,
         `/rest/v1/tables/${table}${endpoint}`,
@@ -305,21 +316,42 @@ export function AuthProvider({ children }) {
 
       return data;
     } catch (error) {
-      console.error('Table operation error, trying offline cache:', error);
-      if (method === 'GET') {
-        const isById = endpoint.startsWith('/') && endpoint.length > 1 && !endpoint.includes('?');
-        if (isById) {
-          const docId = endpoint.substring(1);
-          const data = await offlineDB.getOfflineTableItemCache(table, docId);
-          if (!data) throw new Error('Item not found in offline cache.');
-          return data;
-        } else {
-          const data = await offlineDB.getOfflineTableCache(table);
-          // NOTE: Offline mode does not support filtering, pagination, or sorting.
+      console.warn('Table operation error, falling back to offline DB:', error);
+      
+      const docIdMatch = endpoint.match(/^\/([^/?]+)/);
+      const docId = docIdMatch ? docIdMatch[1] : null;
+
+      switch (method) {
+        case 'GET': {
+          if (docId) {
+            const data = await offlineDB.getOfflineTableItemCache(table, docId);
+            if (!data) throw new Error('Item not found in offline cache.');
+            return data;
+          }
+          const queryParams = new URLSearchParams(endpoint.split('?')[1] || '');
+          const query = Object.fromEntries(queryParams.entries());
+          const data = await offlineDB.queryTable(table, query);
           return { data, totalCount: data.length };
         }
+        case 'POST':
+          return await offlineDB.addTableItem(table, body);
+        case 'PUT':
+          if (!docId) throw new Error('Document ID required for PUT');
+          await offlineDB.updateTableItem(table, docId, body);
+          return { modified: 1 };
+        case 'DELETE':
+            if (docId) {
+              const deleted = await offlineDB.deleteTableItem(table, docId);
+              return { deleted };
+            }
+            // NOTE: Offline mode does not support bulk delete by query.
+            throw new Error('Offline bulk delete not supported');
+        case 'PATCH':
+            // NOTE: Offline mode does not support bulk update by query.
+            throw new Error('Offline bulk update not supported');
+        default:
+          throw error;
       }
-      throw error;
     }
   };
 
@@ -329,18 +361,6 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
-  useEffect(() => {
-    const handleOnline = () => syncPendingOperations();
-    window.addEventListener('online', handleOnline);
-
-    if (token && navigator.onLine) {
-      syncPendingOperations();
-    }
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-    };
-  }, [token, isSyncing]);
 
   return (
     <AuthContext.Provider value={{ 
