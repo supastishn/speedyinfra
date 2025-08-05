@@ -32,6 +32,8 @@ const upload = multer({ storage: storage });
  *   post:
  *     summary: Upload one or more files
  *     tags: [Storage]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *     requestBody:
  *       content:
  *         multipart/form-data:
@@ -66,6 +68,8 @@ router.post('/upload', upload.array('files', 12), (req, res) => {
  *   get:
  *     summary: List all uploaded files
  *     tags: [Storage]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *     responses:
  *       200:
  *         description: An array of filenames
@@ -96,6 +100,7 @@ router.get('/files', (req, res) => {
  *     summary: Download a specific file
  *     tags: [Storage]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *       - in: path
  *         name: filename
  *         required: true
@@ -132,6 +137,7 @@ router.get('/files/:filename', (req, res) => {
  *     summary: Delete a specific file
  *     tags: [Storage]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *       - in: path
  *         name: filename
  *         required: true

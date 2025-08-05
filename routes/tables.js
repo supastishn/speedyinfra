@@ -10,13 +10,6 @@ const { tableDataSchema } = require('../util/validation');
  * tags:
  *   name: Tables
  *   description: Generic data table operations
- * parameters:
- *   - in: path
- *     name: table
- *     required: true
- *     description: The name of the table to operate on.
- *     schema:
- *       type: string
  */
 
 /**
@@ -26,6 +19,13 @@ const { tableDataSchema } = require('../util/validation');
  *     summary: Get a document by its ID
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: path
  *         name: id
  *         required: true
@@ -58,6 +58,13 @@ router.get('/:table/:id', async (req, res) => {
  *     summary: Update (replace) a document by its ID
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: path
  *         name: id
  *         required: true
@@ -100,6 +107,13 @@ router.put('/:table/:id', async (req, res) => {
  *     summary: Delete a document by its ID
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: path
  *         name: id
  *         required: true
@@ -132,6 +146,13 @@ router.delete('/:table/:id', async (req, res) => {
  *     summary: Query documents in a table
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: _page
  *         schema:
@@ -223,6 +244,14 @@ router.get('/:table', async (req, res) => {
  *   post:
  *     summary: Create a new document in a table
  *     tags: [Tables]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -256,6 +285,13 @@ router.post('/:table', async (req, res) => {
  *     summary: Update documents matching a query
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: fieldName
  *         description: "Field to query for updates (e.g., `category=electronics`)"
@@ -290,6 +326,13 @@ router.patch('/:table', async (req, res) => {
  *     summary: Delete documents matching a query
  *     tags: [Tables]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: fieldName
  *         description: "Field to query for deletion (e.g., `status=archived`)"
@@ -316,6 +359,14 @@ router.delete('/:table', async (req, res) => {
  *   post:
  *     summary: Count documents matching a filter
  *     tags: [Tables]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *     requestBody:
  *       content:
  *         application/json:
@@ -343,6 +394,14 @@ router.post('/:table/_count', async (req, res) => {
  *   post:
  *     summary: Create a folder-like entity for a table (metadata purposes)
  *     tags: [Tables]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *       - in: path
+ *         name: table
+ *         required: true
+ *         description: The name of the table to operate on.
+ *         schema:
+ *           type: string
  *     responses:
  *       201:
  *         description: Folder created

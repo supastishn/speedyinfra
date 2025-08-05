@@ -18,6 +18,9 @@ const { registerSchema, loginSchema } = require('../util/validation');
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -83,6 +86,9 @@ router.post('/register', async (req, res) => {
  *   post:
  *     summary: Log in a user
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:

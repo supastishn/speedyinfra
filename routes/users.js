@@ -41,8 +41,8 @@ const deleteUserById = async (id, projectName) => {
  *   get:
  *     summary: Get authenticated user's profile
  *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *     responses:
  *       200:
  *         description: User profile data
@@ -69,8 +69,8 @@ router.get('/profile', async (req, res) => {
  *   put:
  *     summary: Update authenticated user's profile
  *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *     requestBody:
  *       content:
  *         application/json:
@@ -113,8 +113,8 @@ router.put('/update', async (req, res) => {
  *   delete:
  *     summary: Delete authenticated user's account
  *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *     responses:
  *       200:
  *         description: User deleted successfully
@@ -139,9 +139,10 @@ router.delete('/delete', async (req, res) => {
  * @swagger
  * /rest/v1/users/{id}:
  *   get:
- *     summary: Get user by ID (admin only)
+ *     summary: Get user by ID
  *     tags: [Users]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *       - in: path
  *         name: id
  *         required: true
@@ -172,6 +173,7 @@ router.get('/:id', async (req, res) => {
  *     summary: Update user by ID (admin only)
  *     tags: [Users]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *       - in: path
  *         name: id
  *         required: true
@@ -218,6 +220,7 @@ router.put('/:id', authorizeRole(['admin']), async (req, res) => {
  *     summary: Delete user by ID (admin only)
  *     tags: [Users]
  *     parameters:
+ *       - $ref: '#/components/parameters/ProjectNameHeader'
  *       - in: path
  *         name: id
  *         required: true

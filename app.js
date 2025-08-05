@@ -38,6 +38,17 @@ const swaggerOptions = {
           bearerFormat: 'JWT',
         },
       },
+      parameters: {
+        ProjectNameHeader: {
+          in: 'header',
+          name: 'X-Project-Name',
+          schema: {
+            type: 'string',
+          },
+          required: true,
+          description: 'The name of the project to operate on.',
+        },
+      },
     },
     security: [{ bearerAuth: [] }],
   },
