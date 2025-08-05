@@ -5,6 +5,41 @@ const jwt = require('jsonwebtoken');
 const { getTableDB, promisifyDBMethod, getProjectConfig } = require('../util/db');
 const { registerSchema, loginSchema } = require('../util/validation');
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication and user registration
+ */
+
+/**
+ * @swagger
+ * /rest/v1/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Bad request (e.g., user exists, invalid data)
+ */
 router.post('/register', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -42,6 +77,42 @@ router.post('/register', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               rememberMe:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Login successful, returns JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;

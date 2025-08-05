@@ -5,7 +5,38 @@ const path = require('path');
 const fs = require('fs');
 const { tableDataSchema } = require('../util/validation');
 
-// Get document by ID
+/**
+ * @swagger
+ * tags:
+ *   name: Tables
+ *   description: Generic data table operations
+ * parameters:
+ *   - in: path
+ *     name: table
+ *     required: true
+ *     description: The name of the table to operate on.
+ *     schema:
+ *       type: string
+ */
+
+/**
+ * @swagger
+ * /rest/v1/tables/{table}/{id}:
+ *   get:
+ *     summary: Get a document by its ID
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: The requested document
+ *       404:
+ *         description: Document not found
+ */
 router.get('/:table/:id', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -20,7 +51,30 @@ router.get('/:table/:id', async (req, res) => {
   }
 });
 
-// Update document by ID
+/**
+ * @swagger
+ * /rest/v1/tables/{table}/{id}:
+ *   put:
+ *     summary: Update (replace) a document by its ID
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Document updated
+ *       404:
+ *         description: Document not found
+ */
 router.put('/:table/:id', async (req, res) => {
   try {
     const { error } = tableDataSchema.validate(req.body);
@@ -39,7 +93,24 @@ router.put('/:table/:id', async (req, res) => {
   }
 });
 
-// Delete document by ID
+/**
+ * @swagger
+ * /rest/v1/tables/{table}/{id}:
+ *   delete:
+ *     summary: Delete a document by its ID
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Document deleted
+ *       404:
+ *         description: Document not found
+ */
 router.delete('/:table/:id', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -54,6 +125,48 @@ router.delete('/:table/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/tables/{table}:
+ *   get:
+ *     summary: Query documents in a table
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: query
+ *         name: _page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: _limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: _sort
+ *         schema:
+ *           type: string
+ *         description: Field to sort by
+ *       - in: query
+ *         name: _order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order
+ *       - in: query
+ *         name: fieldName
+ *         description: "Filter by any field. Supports operators: `_gte`, `_lte`, `_ne` (e.g., `price_gte=100`)"
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A list of documents
+ *         headers:
+ *           X-Total-Count:
+ *             schema:
+ *               type: integer
+ *             description: Total number of matching documents
+ */
 router.get('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -104,6 +217,22 @@ router.get('/:table', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/tables/{table}:
+ *   post:
+ *     summary: Create a new document in a table
+ *     tags: [Tables]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: Document created
+ */
 router.post('/:table', async (req, res) => {
   try {
     const { error } = tableDataSchema.validate(req.body);
@@ -120,6 +249,29 @@ router.post('/:table', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/tables/{table}:
+ *   patch:
+ *     summary: Update documents matching a query
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: query
+ *         name: fieldName
+ *         description: "Field to query for updates (e.g., `category=electronics`)"
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: The fields to update.
+ *     responses:
+ *       200:
+ *         description: Number of documents modified
+ */
 router.patch('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -131,6 +283,22 @@ router.patch('/:table', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/tables/{table}:
+ *   delete:
+ *     summary: Delete documents matching a query
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: query
+ *         name: fieldName
+ *         description: "Field to query for deletion (e.g., `status=archived`)"
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Number of documents deleted
+ */
 router.delete('/:table', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -142,7 +310,22 @@ router.delete('/:table', async (req, res) => {
   }
 });
 
-// Count documents based on filter
+/**
+ * @swagger
+ * /rest/v1/tables/{table}/_count:
+ *   post:
+ *     summary: Count documents matching a filter
+ *     tags: [Tables]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: A NeDB query object.
+ *     responses:
+ *       200:
+ *         description: The number of matching documents
+ */
 router.post('/:table/_count', async (req, res) => {
   try {
     const db = getTableDB(req.params.table, req.projectName);
@@ -154,6 +337,16 @@ router.post('/:table/_count', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/tables/{table}/_folders:
+ *   post:
+ *     summary: Create a folder-like entity for a table (metadata purposes)
+ *     tags: [Tables]
+ *     responses:
+ *       201:
+ *         description: Folder created
+ */
 router.post('/:table/_folders', async (req, res) => {
   try {
     const tableName = req.params.table;

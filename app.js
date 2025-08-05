@@ -1,4 +1,6 @@
 const express = require('express')
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const app = express()
 const port = 3000
 
@@ -19,6 +21,31 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'SpeedyInfra API',
+      version: '1.0.0',
+      description: 'A comprehensive backend service for modern applications.',
+    },
+    servers: [{ url: 'http://localhost:3000' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./routes/*.js'],
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/rest/v1', rest_v1_router);
 

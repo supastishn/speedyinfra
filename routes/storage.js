@@ -19,7 +19,34 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Upload one or more files
+/**
+ * @swagger
+ * tags:
+ *   name: Storage
+ *   description: File storage operations
+ */
+
+/**
+ * @swagger
+ * /rest/v1/storage/upload:
+ *   post:
+ *     summary: Upload one or more files
+ *     tags: [Storage]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Files uploaded successfully
+ */
 router.post('/upload', upload.array('files', 12), (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).send({ message: 'Please upload at least one file.' });
@@ -33,7 +60,22 @@ router.post('/upload', upload.array('files', 12), (req, res) => {
   res.status(201).json({ message: 'Files uploaded successfully', files: uploadedFiles });
 });
 
-// List all files
+/**
+ * @swagger
+ * /rest/v1/storage/files:
+ *   get:
+ *     summary: List all uploaded files
+ *     tags: [Storage]
+ *     responses:
+ *       200:
+ *         description: An array of filenames
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ */
 router.get('/files', (req, res) => {
   const uploadPath = path.join(__dirname, `../projects/${req.projectName}/uploads`);
   if (!fs.existsSync(uploadPath)) {
@@ -47,7 +89,29 @@ router.get('/files', (req, res) => {
   });
 });
 
-// Download a specific file
+/**
+ * @swagger
+ * /rest/v1/storage/files/{filename}:
+ *   get:
+ *     summary: Download a specific file
+ *     tags: [Storage]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File content
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: File not found
+ */
 router.get('/files/:filename', (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(__dirname, `../projects/${req.projectName}/uploads`, filename);
@@ -61,7 +125,24 @@ router.get('/files/:filename', (req, res) => {
   });
 });
 
-// Delete a specific file
+/**
+ * @swagger
+ * /rest/v1/storage/files/{filename}:
+ *   delete:
+ *     summary: Delete a specific file
+ *     tags: [Storage]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       404:
+ *         description: File not found
+ */
 router.delete('/files/:filename', (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(__dirname, `../projects/${req.projectName}/uploads`, filename);

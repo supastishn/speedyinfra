@@ -29,9 +29,28 @@ const deleteUserById = async (id, projectName) => {
 };
 
 /**
- * Additional endpoints for React SPA integration
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management
  */
 
+/**
+ * @swagger
+ * /rest/v1/users/profile:
+ *   get:
+ *     summary: Get authenticated user's profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
 router.get('/profile', async (req, res) => {
   try {
     const user = await getUser(req.user.userId, req.projectName);
@@ -44,6 +63,31 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/users/update:
+ *   put:
+ *     summary: Update authenticated user's profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       400:
+ *         description: Invalid data
+ */
 router.put('/update', async (req, res) => {
   try {
     const { error } = updateUserSchema.validate(req.body);
@@ -63,6 +107,20 @@ router.put('/update', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/users/delete:
+ *   delete:
+ *     summary: Delete authenticated user's account
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ */
 router.delete('/delete', async (req, res) => {
   try {
     const { userId } = req.user;
@@ -77,6 +135,24 @@ router.delete('/delete', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/users/{id}:
+ *   get:
+ *     summary: Get user by ID (admin only)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User data
+ *       404:
+ *         description: User not found
+ */
 router.get('/:id', async (req, res) => {
   try {
     const user = await getUser(req.params.id, req.projectName);
@@ -89,6 +165,33 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/users/{id}:
+ *   put:
+ *     summary: Update user by ID (admin only)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ */
 router.put('/:id', authorizeRole(['admin']), async (req, res) => {
   try {
     const { error } = updateUserSchema.validate(req.body);
@@ -108,6 +211,22 @@ router.put('/:id', authorizeRole(['admin']), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /rest/v1/users/{id}:
+ *   delete:
+ *     summary: Delete user by ID (admin only)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ */
 router.delete('/:id', authorizeRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
