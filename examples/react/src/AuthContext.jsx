@@ -282,7 +282,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('userProfile');
     setToken(null);
     setUser(null);
-    window.location.href = '/login';
+    window.location.href = '#/login';
   };
 
   const resetAllData = async () => {

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ command }) => {
   const config = {
+    base: '/speedyinfra/',
     plugins: [react()],
     server: {
       proxy: {
@@ -21,9 +22,6 @@ export default defineConfig(({ command }) => {
     }
   };
 
-  if (command === 'build') {
-    config.base = '/speedyinfra/';
-  }
 
   return config;
 })
