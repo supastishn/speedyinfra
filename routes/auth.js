@@ -40,6 +40,10 @@ const { registerSchema, loginSchema } = require('../util/validation');
  *     responses:
  *       201:
  *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       400:
  *         description: Bad request (e.g., user exists, invalid data)
  */
@@ -106,6 +110,7 @@ router.post('/register', async (req, res) => {
  *                 format: password
  *               rememberMe:
  *                 type: boolean
+ *                 description: If true, token expires in 30 days. Otherwise, it expires in 1 hour.
  *     responses:
  *       200:
  *         description: Login successful, returns JWT
@@ -121,7 +126,7 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     const { error } = loginSchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: error.details[0].message });

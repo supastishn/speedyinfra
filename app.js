@@ -49,6 +49,43 @@ const swaggerOptions = {
           description: 'The name of the project to operate on.',
         },
       },
+      schemas: {
+        User: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'User ID',
+              example: 'abcdef1234567890'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'User email address',
+              example: 'user@example.com'
+            },
+            role: {
+              type: 'string',
+              description: 'User role',
+              example: 'user'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Timestamp of user creation'
+            }
+          }
+        },
+        Error: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              description: 'A description of the error'
+            }
+          }
+        }
+      }
     },
     security: [{ bearerAuth: [] }],
   },

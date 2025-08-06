@@ -34,6 +34,16 @@ const { tableDataSchema } = require('../util/validation');
  *     responses:
  *       200:
  *         description: The requested document
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               example:
+ *                 _id: "doc123"
+ *                 name: "Laptop"
+ *                 price: 1200
+ *                 category: "electronics"
+ *                 createdAt: "2025-08-06T00:00:00Z"
  *       404:
  *         description: Document not found
  */
@@ -72,13 +82,28 @@ router.get('/:table/:id', async (req, res) => {
  *           type: string
  *     requestBody:
  *       required: true
+ *       description: The full document to replace the existing one.
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *           example:
+ *             name: "Updated Laptop"
+ *             price: 1250
+ *             category: "electronics"
  *     responses:
  *       200:
- *         description: Document updated
+ *         description: Document updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 modified:
+ *                   type: integer
+ *                   example: 1
+ *       400:
+ *         description: Invalid data provided
  *       404:
  *         description: Document not found
  */
@@ -121,7 +146,15 @@ router.put('/:table/:id', async (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Document deleted
+ *         description: Document deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deleted:
+ *                   type: integer
+ *                   example: 1
  *       404:
  *         description: Document not found
  */
@@ -144,6 +177,7 @@ router.delete('/:table/:id', async (req, res) => {
  * /rest/v1/tables/{table}:
  *   get:
  *     summary: Query documents in a table
+ *     description: "Query documents with pagination, sorting, and filtering. Filtering can be done on any field in the document using query parameters. For example, `?category=electronics&price_gte=100`. Supported operators are `_gte` (greater than or equal), `_lte` (less than or equal), and `_ne` (not equal)."
  *     tags: [Tables]
  *     parameters:
  *       - $ref: '#/components/parameters/ProjectNameHeader'
@@ -157,31 +191,43 @@ router.delete('/:table/:id', async (req, res) => {
  *         name: _page
  *         schema:
  *           type: integer
+ *           example: 1
  *         description: Page number for pagination
  *       - in: query
  *         name: _limit
  *         schema:
  *           type: integer
+ *           example: 10
  *         description: Number of items per page
  *       - in: query
  *         name: _sort
  *         schema:
  *           type: string
+ *           example: "price"
  *         description: Field to sort by
  *       - in: query
  *         name: _order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
+ *           example: "asc"
  *         description: Sort order
- *       - in: query
- *         name: fieldName
- *         description: "Filter by any field. Supports operators: `_gte`, `_lte`, `_ne` (e.g., `price_gte=100`)"
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: A list of documents
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *             example:
+ *               - _id: "doc123"
+ *                 name: "Laptop"
+ *                 price: 1200
+ *               - _id: "doc124"
+ *                 name: "Keyboard"
+ *                 price: 75
  *         headers:
  *           X-Total-Count:
  *             schema:
@@ -254,13 +300,30 @@ router.get('/:table', async (req, res) => {
  *           type: string
  *     requestBody:
  *       required: true
+ *       description: A single document to create. The `_id` and `createdAt` fields are added automatically.
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *           example:
+ *             name: "New Product"
+ *             price: 99.99
+ *             category: "books"
  *     responses:
  *       201:
- *         description: Document created
+ *         description: Document created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *             example:
+ *               _id: "newDoc456"
+ *               name: "New Product"
+ *               price: 99.99
+ *               category: "books"
+ *               createdAt: "2025-08-06T00:00:00.000Z"
+ *       400:
+ *         description: Invalid data provided
  */
 router.post('/:table', async (req, res) => {
   try {
@@ -283,6 +346,7 @@ router.post('/:table', async (req, res) => {
  * /rest/v1/tables/{table}:
  *   patch:
  *     summary: Update documents matching a query
+ *     description: "Update documents matching a filter. See GET `/{table}` for filter examples."
  *     tags: [Tables]
  *     parameters:
  *       - $ref: '#/components/parameters/ProjectNameHeader'
@@ -292,11 +356,6 @@ router.post('/:table', async (req, res) => {
  *         description: The name of the table to operate on.
  *         schema:
  *           type: string
- *       - in: query
- *         name: fieldName
- *         description: "Field to query for updates (e.g., `category=electronics`)"
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -304,9 +363,20 @@ router.post('/:table', async (req, res) => {
  *           schema:
  *             type: object
  *             description: The fields to update.
+ *           example:
+ *             price: 1100
+ *             tags: ["tech", "portable", "new"]
  *     responses:
  *       200:
  *         description: Number of documents modified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 modified:
+ *                   type: integer
+ *                   example: 2
  */
 router.patch('/:table', async (req, res) => {
   try {
@@ -324,6 +394,7 @@ router.patch('/:table', async (req, res) => {
  * /rest/v1/tables/{table}:
  *   delete:
  *     summary: Delete documents matching a query
+ *     description: "Delete documents matching a filter. See GET `/{table}` for filter examples."
  *     tags: [Tables]
  *     parameters:
  *       - $ref: '#/components/parameters/ProjectNameHeader'
@@ -333,14 +404,17 @@ router.patch('/:table', async (req, res) => {
  *         description: The name of the table to operate on.
  *         schema:
  *           type: string
- *       - in: query
- *         name: fieldName
- *         description: "Field to query for deletion (e.g., `status=archived`)"
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Number of documents deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deleted:
+ *                   type: integer
+ *                   example: 5
  */
 router.delete('/:table', async (req, res) => {
   try {
@@ -372,10 +446,21 @@ router.delete('/:table', async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             description: A NeDB query object.
+ *             description: A NeDB query object. See NeDB documentation for query syntax.
+ *           example:
+ *             category: "electronics"
+ *             price: { "$gte": 100 }
  *     responses:
  *       200:
  *         description: The number of matching documents
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *                   example: 10
  */
 router.post('/:table/_count', async (req, res) => {
   try {
@@ -405,6 +490,14 @@ router.post('/:table/_count', async (req, res) => {
  *     responses:
  *       201:
  *         description: Folder created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Folder products created
  */
 router.post('/:table/_folders', async (req, res) => {
   try {

@@ -46,6 +46,10 @@ const deleteUserById = async (id, projectName) => {
  *     responses:
  *       200:
  *         description: User profile data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       401:
  *         description: Unauthorized
  *       404:
@@ -87,6 +91,14 @@ router.get('/profile', async (req, res) => {
  *         description: User updated successfully
  *       400:
  *         description: Invalid data
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: User not found
+ *       400:
+ *         description: Invalid data
+ *       404:
+ *         description: User not found
  */
 router.put('/update', async (req, res) => {
   try {
@@ -151,6 +163,10 @@ router.delete('/delete', async (req, res) => {
  *     responses:
  *       200:
  *         description: User data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       404:
  *         description: User not found
  */
@@ -229,6 +245,10 @@ router.put('/:id', authorizeRole(['admin']), async (req, res) => {
  *     responses:
  *       200:
  *         description: User deleted successfully
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: User not found
  */
 router.delete('/:id', authorizeRole(['admin']), async (req, res) => {
   try {

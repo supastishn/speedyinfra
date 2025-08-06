@@ -48,6 +48,33 @@ const upload = multer({ storage: storage });
  *     responses:
  *       201:
  *         description: Files uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Files uploaded successfully
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       filename:
+ *                         type: string
+ *                         example: 1722906169004-test-file.txt
+ *                       originalname:
+ *                         type: string
+ *                         example: test-file.txt
+ *                       size:
+ *                         type: integer
+ *                         example: 1234
+ *                       mimetype:
+ *                         type: string
+ *                         example: text/plain
+ *       400:
+ *         description: Bad request (e.g., no files uploaded)
  */
 router.post('/upload', upload.array('files', 12), (req, res) => {
   if (!req.files || req.files.length === 0) {
