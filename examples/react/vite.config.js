@@ -8,7 +8,7 @@ export default defineConfig(({ command }) => {
     plugins: [react()],
     server: {
       proxy: {
-        '/rest': 'http://localhost:3000',
+        '/rest': 'https://speedyinfra.supastishn.hackclub.app',
       },
       hmr: {
         clientPort: 5173,
